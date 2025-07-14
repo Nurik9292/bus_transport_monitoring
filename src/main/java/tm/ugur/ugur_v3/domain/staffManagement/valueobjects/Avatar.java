@@ -1,55 +1,100 @@
 package tm.ugur.ugur_v3.domain.staffManagement.valueobjects;
 
-import java.util.Objects;
+import lombok.Getter;
+import tm.ugur.ugur_v3.domain.shared.valueobjects.ValueObject;
 
-public record Avatar(String fileName, String contentType, long sizeBytes) {
+@Getter
+public final class Avatar extends ValueObject {
 
-    public Avatar(String fileName, String contentType, long sizeBytes) {
-        if (fileName == null || fileName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Avatar filename cannot be empty");
-        }
-        if (!isValidImageType(contentType)) {
-            throw new IllegalArgumentException("Invalid image type: " + contentType);
-        }
-        if (sizeBytes <= 0 || sizeBytes > 5_000_000) { // 5MB max
-            throw new IllegalArgumentException("Invalid avatar size: " + sizeBytes);
-        }
+    private static final long MAX_SIZE_BYTES = 2 * 1024 * 1024;
+    private static final int MIN_DIMENSION = 50;
+    private static final int MAX_DIMENSION = 1024;
 
-        this.fileName = fileName.trim();
-        this.contentType = contentType;
+    private final String fileName;
+    private final String mimeType;
+    private final long sizeBytes;
+    private final int width;
+    private final int height;
+    private final String storageUrl;
+
+    private Avatar(String fileName, String mimeType, long sizeBytes, int width, int height, String storageUrl) {
+        this.fileName = fileName;
+        this.mimeType = mimeType;
         this.sizeBytes = sizeBytes;
+        this.width = width;
+        this.height = height;
+        this.storageUrl = storageUrl;
+        validate();
+    }
+
+    public static Avatar of(String fileName, String mimeType, long sizeBytes, int width, int height, String storageUrl) {
+        return new Avatar(fileName, mimeType, sizeBytes, width, height, storageUrl);
+    }
+
+    public static Avatar defaultAvatar() {
+        return new Avatar("default.png", "image/png", 1024, 100, 100, "/assets/default-avatar.png");
+    }
+
+    @Override
+    protected void validate() {
+        if (fileName == null || fileName.trim().isEmpty()) {
+            throw new InvalidAvatarException("File name cannot be null or empty");
+        }
+
+        if (!isValidMimeType(mimeType)) {
+            throw new InvalidAvatarException("Unsupported image format: " + mimeType);
+        }
+
+        if (sizeBytes > MAX_SIZE_BYTES) {
+            throw new InvalidAvatarException("Image size exceeds maximum: " + sizeBytes + " bytes");
+        }
+
+        if (width < MIN_DIMENSION || height < MIN_DIMENSION) {
+            throw new InvalidAvatarException(
+                    String.format("Image dimensions too small: %dx%d (minimum: %dx%d)",
+                            width, height, MIN_DIMENSION, MIN_DIMENSION));
+        }
+
+        if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+            throw new InvalidAvatarException(
+                    String.format("Image dimensions too large: %dx%d (maximum: %dx%d)",
+                            width, height, MAX_DIMENSION, MAX_DIMENSION));
+        }
+
+        if (storageUrl == null || storageUrl.trim().isEmpty()) {
+            throw new InvalidAvatarException("Storage URL cannot be null or empty");
+        }
+    }
+
+    private boolean isValidMimeType(String mimeType) {
+        return mimeType != null && (
+                mimeType.equals("image/jpeg") ||
+                        mimeType.equals("image/png") ||
+                        mimeType.equals("image/webp")
+        );
+    }
+
+    public boolean isSquare() {
+        return width == height;
     }
 
     public String getFileExtension() {
         int lastDot = fileName.lastIndexOf('.');
-        return lastDot > 0 ? fileName.substring(lastDot) : "";
+        return lastDot > 0 ? fileName.substring(lastDot + 1).toLowerCase() : "";
     }
 
-    private static boolean isValidImageType(String contentType) {
-        return contentType != null && (
-                contentType.equals("image/jpeg") ||
-                        contentType.equals("image/png") ||
-                        contentType.equals("image/gif") ||
-                        contentType.equals("image/webp")
-        );
+    public boolean isHighResolution() {
+        return width >= 512 && height >= 512;
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (!(obj instanceof Avatar(String name, String type, long bytes))) return false;
-        return Objects.equals(this.fileName, name) &&
-                Objects.equals(this.contentType, type) &&
-                this.sizeBytes == bytes;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(fileName, contentType, sizeBytes);
+    protected Object[] getEqualityComponents() {
+        return new Object[]{fileName, mimeType, sizeBytes, width, height, storageUrl};
     }
 
     @Override
     public String toString() {
-        return "Avatar(" + fileName + ", " + contentType + ", " + sizeBytes + " bytes)";
+        return String.format("Avatar{%s, %s, %dx%d, %.1fKB}",
+                fileName, mimeType, width, height, sizeBytes / 1024.0);
     }
 }

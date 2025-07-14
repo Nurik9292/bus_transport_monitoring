@@ -1,35 +1,59 @@
 package tm.ugur.ugur_v3.domain.staffManagement.valueobjects;
 
-import java.util.Objects;
+import tm.ugur.ugur_v3.domain.shared.valueobjects.ValueObject;
 
-public record Email(String value) {
+import java.util.regex.Pattern;
 
-    private static final String EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})$";
+public final class Email extends ValueObject {
 
-    public Email(String value) {
-        if (!isValidEmail(value)) {
-            throw new IllegalArgumentException("Invalid email format: " + value);
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(
+            "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    private static final int MAX_LENGTH = 254;
+
+    private final String value;
+
+    private Email(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            throw new InvalidEmailException("Email cannot be null or empty");
         }
-        this.value = value.toLowerCase().trim();
+        this.value = value.trim().toLowerCase();
+        validate();
     }
 
-    public boolean isValid() {
-        return isValidEmail(this.value);
+    public static Email of(String value) {
+        return new Email(value);
+    }
+
+    @Override
+    protected void validate() {
+        if (value.length() > MAX_LENGTH) {
+            throw new InvalidEmailException("Email too long: " + value.length() + " characters");
+        }
+
+        if (!EMAIL_PATTERN.matcher(value).matches()) {
+            throw new InvalidEmailException("Invalid email format: " + value);
+        }
     }
 
     public String getDomain() {
         return value.substring(value.indexOf('@') + 1);
     }
 
-    private static boolean isValidEmail(String email) {
-        return email != null && email.matches(EMAIL_REGEX);
+    public String getLocalPart() {
+        return value.substring(0, value.indexOf('@'));
+    }
+
+    public boolean isCorporateEmail(String corporateDomain) {
+        return getDomain().equals(corporateDomain);
+    }
+
+    public String getValue() {
+        return value;
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (!(obj instanceof Email other)) return false;
-        return Objects.equals(this.value, other.value);
+    protected Object[] getEqualityComponents() {
+        return new Object[]{value};
     }
 
     @Override

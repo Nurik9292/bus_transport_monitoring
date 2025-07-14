@@ -1,0 +1,16 @@
+spring:
+  profiles:
+    default: prod
+
+app:
+  debug: false
+  framework:
+    execution:
+      staff-creation-batch-size: 1000
+      gps-data-batch-size: 500
+    performance:
+      staff-creation-threshold: 50ms
+    retry:
+      staff-operation-max-attempts: 5
+      staff-operation-base-delay: 1000
+

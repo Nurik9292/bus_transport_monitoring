@@ -1,53 +1,37 @@
 package tm.ugur.ugur_v3.domain.staffManagement.valueobjects;
 
-import java.util.Objects;
+import tm.ugur.ugur_v3.domain.shared.exceptions.InvalidEntityIdException;
+import tm.ugur.ugur_v3.domain.shared.valueobjects.EntityId;
+
 import java.util.UUID;
+import java.util.regex.Pattern;
 
-public final class StaffId {
+public final class StaffId extends EntityId {
 
-    private final String value;
+    private static final Pattern VALID_STAFF_ID = Pattern.compile("^STAFF_[A-Z0-9]{12}$");
 
     private StaffId(String value) {
-        if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException("StaffId cannot be null or empty");
-        }
-        this.value = value;
+        super(value);
     }
 
     public static StaffId of(String value) {
         return new StaffId(value);
     }
 
-    public static StaffId of(Long value) {
-        return new StaffId(String.valueOf(value));
-    }
-
     public static StaffId generate() {
-        return new StaffId(UUID.randomUUID().toString());
+        return new StaffId("STAFF_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase());
     }
 
-    public String getValue() {
-        return value;
-    }
 
     public boolean isSuperAdmin() {
-        return "super-admin-id".equals(this.value);
+        return getValue().startsWith("STAFF_SUPERADMIN");
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (!(obj instanceof StaffId other)) return false;
-        return Objects.equals(this.value, other.value);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(value);
-    }
-
-    @Override
-    public String toString() {
-        return "StaffId(" + value + ")";
+    protected void validate() {
+        super.validate();
+        if (!VALID_STAFF_ID.matcher(getValue()).matches()) {
+            throw new InvalidEntityIdException("Invalid staff ID format: " + getValue());
+        }
     }
 }

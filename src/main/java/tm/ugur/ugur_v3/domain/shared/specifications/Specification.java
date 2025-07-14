@@ -5,14 +5,18 @@ public interface Specification<T> {
     boolean isSatisfiedBy(T candidate);
 
     default Specification<T> and(Specification<T> other) {
-        return candidate -> this.isSatisfiedBy(candidate) && other.isSatisfiedBy(candidate);
+        return new AndSpecification<>(this, other);
     }
 
     default Specification<T> or(Specification<T> other) {
-        return candidate -> this.isSatisfiedBy(candidate) || other.isSatisfiedBy(candidate);
+        return new OrSpecification<>(this, other);
     }
 
     default Specification<T> not() {
-        return candidate -> !this.isSatisfiedBy(candidate);
+        return new NotSpecification<>(this);
+    }
+
+    default String getDescription() {
+        return getClass().getSimpleName();
     }
 }

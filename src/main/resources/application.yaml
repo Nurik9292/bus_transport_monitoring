@@ -1,0 +1,37 @@
+spring:
+  profiles:
+    active: dev
+  application:
+    name: ugur
+    version: 1.0.0
+
+
+  flyway:
+    enabled: true
+    url: jdbc:postgresql://localhost:5432/ugur
+    user: postgres
+    password: postgres
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/ugur
+    username: postgres
+    password: postgres
+    pool:
+      enabled: true
+      initial-size: 10
+      max-size: 50
+      max-idle-time: 30m
+      max-acquire-time: 60m
+      validation-query: 60m
+
+
+
+
+
+
+
+
+

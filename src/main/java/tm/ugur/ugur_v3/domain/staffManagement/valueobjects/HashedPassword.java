@@ -1,52 +1,91 @@
 package tm.ugur.ugur_v3.domain.staffManagement.valueobjects;
 
-import java.util.Objects;
+import tm.ugur.ugur_v3.domain.shared.valueobjects.ValueObject;
 
-public final class HashedPassword {
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.Base64;
 
-    private final String hashedValue;
+public final class HashedPassword extends ValueObject {
 
-    private HashedPassword(String hashedValue) {
-        this.hashedValue = Objects.requireNonNull(hashedValue, "Hashed password cannot be null");
+    private static final String HASH_ALGORITHM = "SHA-256";
+    private static final int SALT_LENGTH = 32; // 256 бит
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
+    private final String hash;
+    private final String salt;
+
+    private HashedPassword(String hash, String salt) {
+        this.hash = hash;
+        this.salt = salt;
+        validate();
     }
 
-    public static HashedPassword fromPlain(PlainPassword plainPassword) {
-        String hashed = org.springframework.security.crypto.bcrypt.BCrypt.hashpw(
-                plainPassword.value(),
-                org.springframework.security.crypto.bcrypt.BCrypt.gensalt()
-        );
-        return new HashedPassword(hashed);
+    public static HashedPassword fromPlainPassword(PlainPassword plainPassword) {
+        String salt = generateSalt();
+        String hash = hashPassword(plainPassword.getValue(), salt);
+        return new HashedPassword(hash, salt);
     }
 
-    public static HashedPassword fromHash(String hashedValue) {
-        return new HashedPassword(hashedValue);
+    public static HashedPassword fromHashAndSalt(String hash, String salt) {
+        return new HashedPassword(hash, salt);
+    }
+
+    private static String generateSalt() {
+        byte[] saltBytes = new byte[SALT_LENGTH];
+        SECURE_RANDOM.nextBytes(saltBytes);
+        return Base64.getEncoder().encodeToString(saltBytes);
+    }
+
+    private static String hashPassword(String password, String salt) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance(HASH_ALGORITHM);
+            digest.update(salt.getBytes());
+            byte[] hashBytes = digest.digest(password.getBytes());
+            return Base64.getEncoder().encodeToString(hashBytes);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Hash algorithm not available: " + HASH_ALGORITHM, e);
+        }
     }
 
     public boolean matches(PlainPassword plainPassword) {
-        return org.springframework.security.crypto.bcrypt.BCrypt.checkpw(
-                plainPassword.value(),
-                this.hashedValue
-        );
+        String candidateHash = hashPassword(plainPassword.getValue(), this.salt);
+        return constantTimeEquals(this.hash, candidateHash);
     }
 
-    public String getHashedValue() {
-        return hashedValue;
+    private boolean constantTimeEquals(String a, String b) {
+        if (a.length() != b.length()) {
+            return false;
+        }
+
+        int result = 0;
+        for (int i = 0; i < a.length(); i++) {
+            result |= a.charAt(i) ^ b.charAt(i);
+        }
+        return result == 0;
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (!(obj instanceof HashedPassword other)) return false;
-        return Objects.equals(this.hashedValue, other.hashedValue);
+    protected void validate() {
+        if (hash == null || hash.isEmpty()) {
+            throw new IllegalArgumentException("Hash cannot be null or empty");
+        }
+        if (salt == null || salt.isEmpty()) {
+            throw new IllegalArgumentException("Salt cannot be null or empty");
+        }
     }
 
+    public String getHash() { return hash; }
+    public String getSalt() { return salt; }
+
     @Override
-    public int hashCode() {
-        return Objects.hash(hashedValue);
+    protected Object[] getEqualityComponents() {
+        return new Object[]{hash, salt};
     }
 
     @Override
     public String toString() {
-        return "[HASHED]";
+        return "HashedPassword{hash=*****, salt=*****}";
     }
 }

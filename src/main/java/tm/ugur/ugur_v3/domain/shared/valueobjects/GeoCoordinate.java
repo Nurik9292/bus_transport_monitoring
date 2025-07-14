@@ -1,102 +1,154 @@
 package tm.ugur.ugur_v3.domain.shared.valueobjects;
 
-public class GeoCoordinate {
+import tm.ugur.ugur_v3.domain.shared.exceptions.InvalidGeoCoordinateException;
+
+import java.util.Objects;
+
+public final class GeoCoordinate extends ValueObject {
+
+    public static final double MIN_LATITUDE = -90.0;
+    public static final double MAX_LATITUDE = 90.0;
+    public static final double MIN_LONGITUDE = -180.0;
+    public static final double MAX_LONGITUDE = 180.0;
+    public static final double MIN_ACCURACY = 0.0;
+    public static final double MAX_ACCURACY = 10000.0;
+
+    private static final double EARTH_RADIUS_KM = 6371.0;
+    private static final double DEGREES_TO_RADIANS = Math.PI / 180.0;
+
+    private static final double MAX_ACCURACY_METERS = 10.0;
+    private static final double IS_HIGHLY_ACCURATE = 3.0;
 
     private final double latitude;
     private final double longitude;
-    private final Double altitude;
-    private final Double accuracy;
+    private final double accuracy;
+    private final double altitude;
+    private final long timestamp;
 
-    public GeoCoordinate(double latitude, double longitude) {
-        this(latitude, longitude, null, null);
-    }
+    private transient volatile Double latitudeRadians;
+    private transient volatile Double longitudeRadians;
 
-    public GeoCoordinate(double latitude, double longitude, Double altitude, Double accuracy) {
-        validateLatitude(latitude);
-        validateLongitude(longitude);
-        validateAltitude(altitude);
-        validateAccuracy(accuracy);
 
+    private GeoCoordinate(double latitude, double longitude, double accuracy, double altitude, long timestamp) {
         this.latitude = latitude;
         this.longitude = longitude;
-        this.altitude = altitude;
         this.accuracy = accuracy;
+        this.altitude = altitude;
+        this.timestamp = timestamp;
+        validate();
+
+    }
+
+    public static GeoCoordinate of(double latitude, double longitude, double accuracy) {
+        return new GeoCoordinate(latitude, longitude, accuracy, 0.0, System.currentTimeMillis());
+    }
+
+    public static GeoCoordinate of(double latitude, double longitude, double accuracy, double altitude) {
+        return new GeoCoordinate(latitude, longitude, accuracy,  altitude, System.currentTimeMillis());
+    }
+
+    public static GeoCoordinate of(double latitude, double longitude, double accuracy, long timestamp) {
+        return new GeoCoordinate(latitude, longitude, accuracy, 0.0, timestamp);
+    }
+
+    public static GeoCoordinate of(double latitude, double longitude) {
+        return new GeoCoordinate(latitude, longitude, 0.0, 0.0, System.currentTimeMillis());
+    }
+
+    @Override
+    protected void validate() {
+        if (latitude < MIN_LATITUDE || latitude > MAX_LATITUDE) {
+            throw new InvalidGeoCoordinateException(
+                    String.format("Latitude must be between %.1f and %.1f, got: %.6f",
+                            MIN_LATITUDE, MAX_LATITUDE, latitude));
+        }
+
+        if (longitude < MIN_LONGITUDE || longitude > MAX_LONGITUDE) {
+            throw new InvalidGeoCoordinateException(
+                    String.format("Longitude must be between %.1f and %.1f, got: %.6f",
+                            MIN_LONGITUDE, MAX_LONGITUDE, longitude));
+        }
+
+        if (accuracy < MIN_ACCURACY || accuracy > MAX_ACCURACY) {
+            throw new InvalidGeoCoordinateException(
+                    String.format("Accuracy must be between %.1f and %.1f meters, got: %.2f",
+                            MIN_ACCURACY, MAX_ACCURACY, accuracy));
+        }
+
+        if (timestamp <= 0) {
+            throw new InvalidGeoCoordinateException("Timestamp must be positive");
+        }
     }
 
 
     public double distanceTo(GeoCoordinate other) {
-        return calculateHaversineDistance(this.latitude, this.longitude,
-                other.latitude, other.longitude);
-    }
+        double lat1Rad = getLatitudeRadians();
+        double lat2Rad = other.getLatitudeRadians();
+        double deltaLatRad = lat2Rad - lat1Rad;
+        double deltaLonRad = other.getLongitudeRadians() - getLongitudeRadians();
 
-
-    public boolean isWithinBounds(GeoBounds bounds) {
-        return bounds.contains(this);
-    }
-
-
-    public boolean isValidForTracking() {
-        return latitude != 0.0 && longitude != 0.0 &&
-                (accuracy == null || accuracy <= 100.0);
-    }
-
-    private static void validateLatitude(double latitude) {
-        if (latitude < -90.0 || latitude > 90.0) {
-            throw new IllegalArgumentException("Latitude must be between -90 and 90 degrees");
-        }
-    }
-
-    private static void validateLongitude(double longitude) {
-        if (longitude < -180.0 || longitude > 180.0) {
-            throw new IllegalArgumentException("Longitude must be between -180 and 180 degrees");
-        }
-    }
-
-    private static void validateAltitude(Double altitude) {
-        if (altitude != null && (altitude < -500.0 || altitude > 10000.0)) {
-            throw new IllegalArgumentException("Altitude must be between -500 and 10000 meters");
-        }
-    }
-
-    private static void validateAccuracy(Double accuracy) {
-        if (accuracy != null && accuracy < 0.0) {
-            throw new IllegalArgumentException("Accuracy cannot be negative");
-        }
-    }
-
-    private static double calculateHaversineDistance(double lat1, double lon1, double lat2, double lon2) {
-        final double R = 6371000;
-
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLon = Math.toRadians(lon2 - lon1);
-
-        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
-                        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        double a = Math.sin(deltaLatRad / 2) * Math.sin(deltaLatRad / 2) +
+                Math.cos(lat1Rad) * Math.cos(lat2Rad) *
+                        Math.sin(deltaLonRad / 2) * Math.sin(deltaLonRad / 2);
 
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-        return R * c;
+        return EARTH_RADIUS_KM * c * 1000;
     }
 
-    public double getLatitude() {
-        return latitude;
+    public boolean isWithinRadius(GeoCoordinate center, double radiusMeters) {
+        return distanceTo(center) <= radiusMeters;
     }
 
-    public double getLongitude() {
-        return longitude;
+    public double bearingTo(GeoCoordinate other) {
+        double lat1Rad = getLatitudeRadians();
+        double lat2Rad = other.getLatitudeRadians();
+        double deltaLonRad = other.getLongitudeRadians() - getLongitudeRadians();
+
+        double y = Math.sin(deltaLonRad) * Math.cos(lat2Rad);
+        double x = Math.cos(lat1Rad) * Math.sin(lat2Rad) -
+                Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(deltaLonRad);
+
+        double bearingRad = Math.atan2(y, x);
+        return Math.toDegrees(bearingRad);
     }
 
-    public Double getAltitude() {
-        return altitude;
+    public boolean isAccurate() {
+        return accuracy <= MAX_ACCURACY_METERS;
     }
 
-    public Double getAccuracy() {
-        return accuracy;
+    public boolean isStale(long maxAgeMillis) {
+        return (System.currentTimeMillis() - timestamp) > maxAgeMillis;
+    }
+
+
+    private double getLatitudeRadians() {
+        if (latitudeRadians == null) {
+            latitudeRadians = latitude * DEGREES_TO_RADIANS;
+        }
+        return latitudeRadians;
+    }
+
+    private double getLongitudeRadians() {
+        if (longitudeRadians == null) {
+            longitudeRadians = longitude * DEGREES_TO_RADIANS;
+        }
+        return longitudeRadians;
+    }
+
+    public double getLatitude() { return latitude; }
+    public double getLongitude() { return longitude; }
+    public double getAccuracy() { return accuracy; }
+    public double getAltitude() { return altitude; }
+    public long getTimestamp() { return timestamp; }
+
+    @Override
+    protected Object[] getEqualityComponents() {
+        return new Object[]{latitude, longitude, accuracy, altitude, timestamp};
     }
 
     @Override
     public String toString() {
-        return String.format("GeoCoordinate(%.6f, %.6f)", latitude, longitude);
+        return String.format("GeoCoordinate{lat=%.6f, lon=%.6f, acc=%.2fm, alt=%.6f ts=%d}",
+                latitude, longitude, accuracy, altitude, timestamp);
     }
 }
