@@ -1,7 +1,9 @@
 package tm.ugur.ugur_v3.domain.shared.valueobjects;
 
+import lombok.Getter;
 import tm.ugur.ugur_v3.domain.shared.exceptions.InvalidEntityIdException;
 
+@Getter
 public abstract class EntityId extends ValueObject {
 
     private final String value;
@@ -19,10 +21,6 @@ public abstract class EntityId extends ValueObject {
         if (value.length() > 100) {
             throw new InvalidEntityIdException("Entity ID too long: " + value.length());
         }
-    }
-
-    public String getValue() {
-        return value;
     }
 
     @Override

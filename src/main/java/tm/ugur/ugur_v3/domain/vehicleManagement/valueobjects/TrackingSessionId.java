@@ -94,7 +94,7 @@ public final class TrackingSessionId extends EntityId {
         }
 
         String value = getValue();
-
+        return value.substring(4);
     }
 
     public boolean canCorrelateWith(TrackingSessionId other) {

@@ -1,5 +1,8 @@
 package tm.ugur.ugur_v3.domain.shared.exceptions;
 
+import lombok.Getter;
+
+@Getter
 public final class BusinessRuleViolationException extends DomainException {
 
     private final String ruleName;
@@ -14,7 +17,4 @@ public final class BusinessRuleViolationException extends DomainException {
         this.ruleName = ruleName;
     }
 
-    public String getRuleName() {
-        return ruleName;
-    }
 }

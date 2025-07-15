@@ -1,5 +1,8 @@
 package tm.ugur.ugur_v3.domain.shared.valueobjects;
 
+import lombok.Getter;
+
+@Getter
 public final class AuditInfo extends ValueObject {
 
     private final String createdBy;
@@ -38,22 +41,6 @@ public final class AuditInfo extends ValueObject {
         if (lastModifiedAt == null) {
             throw new IllegalArgumentException("Last modified at cannot be null");
         }
-    }
-
-    public String getCreatedBy() {
-        return createdBy;
-    }
-
-    public Timestamp getCreatedAt() {
-        return createdAt;
-    }
-
-    public String getLastModifiedBy() {
-        return lastModifiedBy;
-    }
-
-    public Timestamp getLastModifiedAt() {
-        return lastModifiedAt;
     }
 
     @Override

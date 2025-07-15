@@ -9,6 +9,8 @@ public enum VehicleStatus {
 
     IN_ROUTE("На маршруте", true),
 
+    INACTIVE("Не активен", false),
+
     AT_DEPOT("В депо", false),
 
     MAINTENANCE("Техобслуживание", false),
@@ -26,13 +28,13 @@ public enum VehicleStatus {
     }
 
     public boolean canTransitionTo(VehicleStatus newStatus) {
-        return switch (this) {
+        return !switch (this) {
             case ACTIVE -> newStatus != RETIRED;
             case IN_ROUTE -> newStatus == ACTIVE || newStatus == AT_DEPOT || newStatus == BREAKDOWN;
             case AT_DEPOT -> newStatus == ACTIVE || newStatus == MAINTENANCE || newStatus == RETIRED;
             case MAINTENANCE -> newStatus == ACTIVE || newStatus == AT_DEPOT || newStatus == RETIRED;
             case BREAKDOWN -> newStatus == MAINTENANCE || newStatus == RETIRED;
-            case RETIRED -> false; // Final state, no transitions allowed
+            case RETIRED, INACTIVE -> false;
         };
     }
 
@@ -56,6 +58,7 @@ public enum VehicleStatus {
             case AT_DEPOT -> 4;
             case MAINTENANCE -> 5;
             case RETIRED -> 6;
+            case INACTIVE -> 7;
         };
     }
 
@@ -65,7 +68,7 @@ public enum VehicleStatus {
             case IN_ROUTE -> 30;
             case ACTIVE -> 60;
             case AT_DEPOT -> 300;
-            case MAINTENANCE, RETIRED -> 0;
+            case MAINTENANCE, RETIRED, INACTIVE -> 0;
         };
     }
 

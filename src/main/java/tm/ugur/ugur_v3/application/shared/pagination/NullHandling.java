@@ -1,5 +1,8 @@
 package tm.ugur.ugur_v3.application.shared.pagination;
 
+import lombok.Getter;
+
+@Getter
 public enum NullHandling {
 
     NATIVE(""),
@@ -15,11 +18,6 @@ public enum NullHandling {
     }
 
 
-    public String getSqlKeyword() {
-        return sqlKeyword;
-    }
-
-
     public boolean requiresSqlKeyword() {
         return this != NATIVE;
     }
@@ -29,20 +27,13 @@ public enum NullHandling {
         return switch (fieldType) {
             case REQUIRED_FIELD -> NATIVE;
 
-            case GPS_COORDINATE -> NULLS_LAST;
+            case GPS_COORDINATE, OPTIONAL_METRIC, USER_INPUT, CALCULATED_VALUE, EXTERNAL_DATA -> NULLS_LAST;
 
             case TIMESTAMP -> switch (sortDirection) {
                 case ASC -> NULLS_FIRST;
                 case DESC -> NULLS_LAST;
             };
 
-            case OPTIONAL_METRIC -> NULLS_LAST;
-
-            case USER_INPUT -> NULLS_LAST;
-
-            case CALCULATED_VALUE -> NULLS_LAST;
-
-            case EXTERNAL_DATA -> NULLS_LAST;
         };
     }
 

@@ -1,11 +1,14 @@
 package tm.ugur.ugur_v3.application.shared.pagination;
 
+import lombok.Getter;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
 
 
+@Getter
 public final class PageMetrics {
 
     private final Duration queryExecutionTime;
@@ -124,17 +127,6 @@ public final class PageMetrics {
                 getEfficiencyRatio()
         );
     }
-
-
-    public Duration getQueryExecutionTime() { return queryExecutionTime; }
-    public Duration getTotalProcessingTime() { return totalProcessingTime; }
-    public long getRowsScanned() { return rowsScanned; }
-    public long getRowsReturned() { return rowsReturned; }
-    public boolean isIndexUsed() { return indexUsed; }
-    public boolean isCacheHit() { return cacheHit; }
-    public Optional<String> getExecutionPlan() { return executionPlan; }
-    public Optional<String> getOptimizationApplied() { return optimizationApplied; }
-    public Instant getTimestamp() { return timestamp; }
 
 
     public enum PerformanceCategory {

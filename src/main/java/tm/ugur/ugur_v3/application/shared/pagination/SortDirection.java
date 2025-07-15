@@ -1,5 +1,8 @@
 package tm.ugur.ugur_v3.application.shared.pagination;
 
+import lombok.Getter;
+
+@Getter
 public enum SortDirection {
 
 
@@ -12,11 +15,6 @@ public enum SortDirection {
 
     SortDirection(String sqlKeyword) {
         this.sqlKeyword = sqlKeyword;
-    }
-
-
-    public String getSqlKeyword() {
-        return sqlKeyword;
     }
 
 

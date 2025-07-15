@@ -1,5 +1,7 @@
 package tm.ugur.ugur_v3.application.shared.pagination;
 
+import lombok.Getter;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -8,14 +10,21 @@ import java.util.stream.Collectors;
 
 public final class PageResult<T> {
 
+    @Getter
     private final List<T> content;
+    @Getter
     private final PageRequest originalRequest;
+    @Getter
     private final long totalElements;
+    @Getter
     private final int totalPages;
     private final boolean hasNext;
     private final boolean hasPrevious;
+    @Getter
     private final Optional<String> nextCursor;
+    @Getter
     private final Optional<String> previousCursor;
+    @Getter
     private final PageMetrics metrics;
 
 
@@ -194,15 +203,8 @@ public final class PageResult<T> {
         return (int) Math.ceil((double) totalElements / pageSize);
     }
 
-    public List<T> getContent() { return content; }
-    public PageRequest getOriginalRequest() { return originalRequest; }
-    public long getTotalElements() { return totalElements; }
-    public int getTotalPages() { return totalPages; }
     public boolean hasNext() { return hasNext; }
     public boolean hasPrevious() { return hasPrevious; }
-    public Optional<String> getNextCursor() { return nextCursor; }
-    public Optional<String> getPreviousCursor() { return previousCursor; }
-    public PageMetrics getMetrics() { return metrics; }
 
     @Override
     public boolean equals(Object o) {

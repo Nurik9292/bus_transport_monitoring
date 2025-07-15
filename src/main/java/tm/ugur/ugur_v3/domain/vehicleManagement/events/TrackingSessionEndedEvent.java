@@ -63,21 +63,30 @@ public final class TrackingSessionEndedEvent implements DomainEvent {
         this.metadata = metadata != null ? Map.copyOf(metadata) : Map.of();
     }
 
-    public static TrackingSessionEndedEvent of(TrackingSessionId sessionId, VehicleId vehicleId,
-                                               String routeId, Duration sessionDuration,
-                                               double totalDistanceTraveled, Speed averageSpeed,
-                                               String endedBy, String reason) {
+    public static TrackingSessionEndedEvent of(
+            TrackingSessionId sessionId,
+            VehicleId vehicleId,
+            String routeId,
+            Duration sessionDuration,
+            double totalDistanceTraveled,
+            Speed averageSpeed,
+            String endedBy, String reason) {
         return new TrackingSessionEndedEvent(
                 sessionId, vehicleId, routeId, sessionDuration, totalDistanceTraveled,
                 averageSpeed, endedBy, SessionEndReason.MANUAL, null, null, null
         );
     }
 
-    public static TrackingSessionEndedEvent of(TrackingSessionId sessionId, VehicleId vehicleId,
-                                               String routeId, Duration sessionDuration,
-                                               double totalDistanceTraveled, Speed averageSpeed,
-                                               String endedBy, SessionEndReason reason,
-                                               SessionSummary sessionSummary) {
+    public static TrackingSessionEndedEvent of(
+            TrackingSessionId sessionId,
+            VehicleId vehicleId,
+            String routeId,
+            Duration sessionDuration,
+            double totalDistanceTraveled,
+            Speed averageSpeed,
+            String endedBy,
+            SessionEndReason reason,
+            SessionSummary sessionSummary) {
         return new TrackingSessionEndedEvent(
                 sessionId, vehicleId, routeId, sessionDuration, totalDistanceTraveled,
                 averageSpeed, endedBy, reason, sessionSummary, null, null
@@ -95,6 +104,8 @@ public final class TrackingSessionEndedEvent implements DomainEvent {
                 averageSpeed, endedBy, reason, sessionSummary, correlationId, metadata
         );
     }
+
+
 
     public boolean isNormalEnd() {
         return reason == SessionEndReason.MANUAL ||

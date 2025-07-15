@@ -1,10 +1,42 @@
 package tm.ugur.ugur_v3.application.shared.caching;
 
+import lombok.Getter;
+
 import java.time.Duration;
 import java.util.function.Function;
 
 
 public final class CacheStrategy {
+
+    public static final CacheStrategyConfig SHORT_TTL = CacheStrategyConfig.builder()
+            .withTtl(Duration.ofMinutes(1))
+            .withRefreshAhead(Duration.ofSeconds(45))
+            .withMaxSize(10000)
+            .withEvictionStrategy(CacheManager.EvictionStrategy.LRU)
+            .withCompressionEnabled(false)
+            .withPriority(CachePriority.HIGH)
+            .withKeyGenerator(key -> CacheKey.of("vehicle", "data", key.toString()))
+            .build();
+
+    public static final CacheStrategyConfig MEDIUM_TTL = CacheStrategyConfig.builder()
+            .withTtl(Duration.ofMinutes(5))
+            .withRefreshAhead(Duration.ofMinutes(3))
+            .withMaxSize(15000)
+            .withEvictionStrategy(CacheManager.EvictionStrategy.LRU)
+            .withCompressionEnabled(false)
+            .withPriority(CachePriority.MEDIUM)
+            .withKeyGenerator(key -> CacheKey.of("vehicle", "data", key.toString()))
+            .build();
+
+    public static final CacheStrategyConfig LONG_TTL = CacheStrategyConfig.builder()
+            .withTtl(Duration.ofMinutes(15))
+            .withRefreshAhead(Duration.ofMinutes(10))
+            .withMaxSize(20000)
+            .withEvictionStrategy(CacheManager.EvictionStrategy.LRU)
+            .withCompressionEnabled(true)
+            .withPriority(CachePriority.LOW)
+            .withKeyGenerator(key -> CacheKey.of("vehicle", "data", key.toString()))
+            .build();
 
     public static final CacheStrategyConfig VEHICLE_LOCATION = CacheStrategyConfig.builder()
             .withTtl(Duration.ofSeconds(30))
@@ -173,6 +205,7 @@ public final class CacheStrategy {
         LARGE
     }
 
+    @Getter
     public enum CachePriority {
         CRITICAL(4),
         HIGH(3),
@@ -185,12 +218,12 @@ public final class CacheStrategy {
             this.level = level;
         }
 
-        public int getLevel() {
-            return level;
-        }
     }
 
 
+
+
+    @Getter
     public static class CacheStrategyConfig {
         private final Duration ttl;
         private final Duration refreshAhead;
@@ -217,16 +250,6 @@ public final class CacheStrategy {
         public static Builder builder() {
             return new Builder();
         }
-
-        public Duration getTtl() { return ttl; }
-        public Duration getRefreshAhead() { return refreshAhead; }
-        public long getMaxSize() { return maxSize; }
-        public CacheManager.EvictionStrategy getEvictionStrategy() { return evictionStrategy; }
-        public boolean isCompressionEnabled() { return compressionEnabled; }
-        public CachePriority getPriority() { return priority; }
-        public boolean isWriteThrough() { return writeThrough; }
-        public Duration getStaleWhileRevalidate() { return staleWhileRevalidate; }
-        public Function<Object, CacheKey> getKeyGenerator() { return keyGenerator; }
 
         public static class Builder {
             private Duration ttl = Duration.ofMinutes(5);

@@ -1,9 +1,12 @@
 package tm.ugur.ugur_v3.application.shared.pagination;
 
+import lombok.Getter;
+
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+@Getter
 public final class SortOrder {
 
     private static final Pattern VALID_FIELD_NAME = Pattern.compile("^[a-zA-Z][a-zA-Z0-9_.]*$");
@@ -192,11 +195,6 @@ public final class SortOrder {
             );
         }
     }
-
-    public String getFieldName() { return fieldName; }
-    public SortDirection getDirection() { return direction; }
-    public NullHandling getNullHandling() { return nullHandling; }
-    public boolean isIgnoreCase() { return ignoreCase; }
 
     @Override
     public boolean equals(Object o) {

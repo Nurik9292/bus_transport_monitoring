@@ -13,6 +13,7 @@ import tm.ugur.ugur_v3.domain.vehicleManagement.events.TrackingSessionStartedEve
 import tm.ugur.ugur_v3.domain.vehicleManagement.events.TrackingSessionEndedEvent;
 import tm.ugur.ugur_v3.domain.vehicleManagement.events.GPSDataReceivedEvent;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -120,7 +121,7 @@ public class VehicleTrackingSession extends AggregateRoot<TrackingSessionId> {
 
         addDomainEvent(TrackingSessionEndedEvent.of(
                 getId(), vehicleId, routeId, getSessionDuration(),
-                totalDistanceTraveled, averageSpeed, endedBy, reason
+                totalDistanceTraveled, Speed.ofKmh(averageSpeed), endedBy, reason
         ));
     }
 
@@ -332,7 +333,7 @@ public class VehicleTrackingSession extends AggregateRoot<TrackingSessionId> {
         return Collections.unmodifiableList(recentGpsPoints);
     }
 
-    public java.time.Duration getSessionDuration() {
+    public Duration getSessionDuration() {
         if (startTime == null) {
             return java.time.Duration.ZERO;
         }

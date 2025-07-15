@@ -1,10 +1,13 @@
 package tm.ugur.ugur_v3.application.shared.pagination;
 
+import lombok.Getter;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
 
+@Getter
 public final class PageRequest {
 
     private static final int DEFAULT_PAGE_SIZE = 20;
@@ -148,13 +151,6 @@ public final class PageRequest {
                 .build();
     }
 
-
-    public int getPageNumber() { return pageNumber; }
-    public int getPageSize() { return pageSize; }
-    public long getOffset() { return offset; }
-    public List<SortOrder> getSortOrders() { return sortOrders; }
-    public Optional<String> getCursor() { return cursor; }
-    public PaginationType getPaginationType() { return paginationType; }
 
     private static void validatePageNumber(int pageNumber) {
         if (pageNumber < 0) {

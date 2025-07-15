@@ -57,15 +57,15 @@ public interface CacheManager {
 
     interface CacheWarmingResult {
 
-        long getLoadedKeys();
+        long loadedKeys();
 
-        long getFailedKeys();
+        long failedKeys();
 
-        Duration getExecutionTime();
+        Duration executionTime();
 
-        List<String> getErrors();
+        List<String> errors();
 
-        boolean isSuccessful();
+        boolean successful();
     }
 
     interface CacheWarmingStrategy {
@@ -146,14 +146,14 @@ public interface CacheManager {
 
     interface CacheHealthCheck {
 
-        boolean isHealthy();
+        boolean healthy();
 
-        Duration getResponseTime();
+        Duration responseTime();
 
-        double getAvailability();
+        double availability();
 
-        List<String> getIssues();
+        List<String> issues();
 
-        java.time.Instant getCheckTime();
+        java.time.Instant checkTime();
     }
 }

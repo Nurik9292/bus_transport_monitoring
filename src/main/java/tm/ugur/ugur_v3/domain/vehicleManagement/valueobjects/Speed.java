@@ -81,7 +81,7 @@ public final class Speed extends ValueObject {
     }
 
     public boolean isStationary() {
-        return kmh < STATIONARY_THRESHOLD;
+        return kmh <= STATIONARY_THRESHOLD;
     }
 
     public boolean isMoving() {
@@ -212,4 +212,6 @@ public final class Speed extends ValueObject {
         }
 
     }
+
+
 }

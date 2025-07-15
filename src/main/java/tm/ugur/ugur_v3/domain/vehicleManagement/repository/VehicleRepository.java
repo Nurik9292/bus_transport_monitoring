@@ -2,15 +2,15 @@ package tm.ugur.ugur_v3.domain.vehicleManagement.repository;
 
 import tm.ugur.ugur_v3.domain.shared.repositories.Repository;
 import tm.ugur.ugur_v3.domain.shared.valueobjects.GeoCoordinate;
+import tm.ugur.ugur_v3.domain.shared.valueobjects.Timestamp;
 import tm.ugur.ugur_v3.domain.vehicleManagement.aggregate.Vehicle;
 import tm.ugur.ugur_v3.domain.vehicleManagement.valueobjects.VehicleId;
+import tm.ugur.ugur_v3.domain.vehicleManagement.valueobjects.LicensePlate;
+import tm.ugur.ugur_v3.domain.vehicleManagement.enums.VehicleType;
 import tm.ugur.ugur_v3.domain.vehicleManagement.enums.VehicleStatus;
-import tm.ugur.ugur_v3.domain.vehicleManagement.specifications.VehicleSpecification;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.time.Duration;
 import java.util.List;
 
 public interface VehicleRepository extends Repository<Vehicle, VehicleId> {
@@ -28,76 +28,103 @@ public interface VehicleRepository extends Repository<Vehicle, VehicleId> {
     @Override
     Mono<Void> deleteById(VehicleId vehicleId);
 
+    @Override
+    Flux<Vehicle> findAll();
 
-    Flux<Vehicle> findByStatus(VehicleStatus status, int page, int size);
 
-    Flux<Vehicle> findByAssignedRoute(String routeId);
+    Mono<Vehicle> findByLicensePlate(LicensePlate licensePlate);
 
-    Flux<Vehicle> findAvailableForAssignment(Integer minCapacity);
+    Flux<Vehicle> findByStatus(VehicleStatus status);
 
-    Flux<Vehicle> findRequiringMaintenance();
+    Flux<Vehicle> findByVehicleType(VehicleType vehicleType);
 
-    Flux<Vehicle> findWithLowFuel(Double fuelThreshold);
+    Flux<Vehicle> findByAssignedRouteId(String routeId);
+
+    Flux<Vehicle> findAvailableForAssignment();
+
+    Flux<Vehicle> findRequiringAttention();
+
+    Flux<Vehicle> findMaintenanceDue();
+
+    Flux<Vehicle> findWithStaleGpsData(Timestamp cutoffTime);
 
 
     Flux<Vehicle> findWithinRadius(GeoCoordinate center, double radiusMeters);
 
-    Flux<Vehicle> findNearestTo(GeoCoordinate location, int maxResults);
+    Flux<Vehicle> findWithinBoundingBox(GeoCoordinate southwest, GeoCoordinate northeast);
 
-    Flux<Vehicle> findInBoundingBox(GeoCoordinate southWest, GeoCoordinate northEast);
+    Flux<Vehicle> findNearestVehicles(GeoCoordinate location, int maxCount, double maxDistanceMeters);
 
+    Flux<Vehicle> findCurrentlyMoving();
 
-    Flux<Vehicle> findWithStaleGpsData(Duration maxAge);
-
-    Mono<java.util.Map<VehicleStatus, Long>> countByStatus();
-
-    Flux<Vehicle> findByLicensePlateContaining(String licensePlate);
+    Flux<Vehicle> findAtDepot();
 
 
-    Mono<Integer> updateStatusBatch(List<VehicleId> vehicleIds, VehicleStatus newStatus,
-                                    String reason, String changedBy);
+    Mono<Long> countByStatus(VehicleStatus status);
 
-    Mono<Integer> updateLocationsBatch(List<LocationUpdate> locationUpdates);
+    Mono<Long> countByVehicleType(VehicleType vehicleType);
 
-    Mono<Integer> unassignFromRoute(String routeId, String reason);
+    Flux<Vehicle> findWithGpsUpdatedSince(Timestamp since);
 
+    Flux<Vehicle> findByStatusIn(List<VehicleStatus> statuses);
 
-    Flux<Vehicle> findBySpecification(VehicleSpecification specification);
-
-    Mono<Long> countBySpecification(VehicleSpecification specification);
+    Flux<Vehicle> findByVehicleTypeIn(List<VehicleType> vehicleTypes);
 
 
-    Mono<VehicleUsageStats> getUsageStatistics(java.time.LocalDate fromDate,
-                                               java.time.LocalDate toDate);
+    Flux<Vehicle> saveAll(Flux<Vehicle> vehicles);
 
-    Flux<RouteVehicleCount> getTopRoutesByVehicleCount(int limit);
+    Mono<Long> updateLocations(Flux<VehicleLocationUpdate> locationUpdates);
 
-
-    Mono<Void> warmupCache();
-
-    Mono<Void> evictFromCache(VehicleId vehicleId);
+    Mono<Long> updateStatuses(Flux<VehicleStatusUpdate> statusUpdates);
 
 
-    record LocationUpdate(
+    Mono<VehicleUtilizationStats> getUtilizationStats(Timestamp startTime, Timestamp endTime);
+
+    Flux<RouteVehicleMapping> getVehiclesByRoute();
+
+    Mono<MaintenanceStats> getMaintenanceStats(Timestamp startTime, Timestamp endTime);
+
+
+    record VehicleLocationUpdate(
             VehicleId vehicleId,
             GeoCoordinate location,
-            Double speed,
-            Double bearing,
-            java.time.Instant timestamp
+            Double speedKmh,
+            Double bearingDegrees,
+            Timestamp timestamp
     ) {}
 
-    record VehicleUsageStats(
+    record VehicleStatusUpdate(
+            VehicleId vehicleId,
+            VehicleStatus newStatus,
+            String reason,
+            String changedBy,
+            Timestamp timestamp
+    ) {}
+
+    record VehicleUtilizationStats(
             int totalVehicles,
             int activeVehicles,
             int inRouteVehicles,
             double averageUtilization,
-            java.time.Duration totalOperatingTime
+            double totalDistanceKm,
+            double averageSpeedKmh,
+            long totalOperatingHours
     ) {}
 
-    record RouteVehicleCount(
+    record RouteVehicleMapping(
             String routeId,
             String routeName,
+            List<VehicleId> assignedVehicles,
             int vehicleCount,
-            double averageSpeed
+            double averageCapacityUtilization
+    ) {}
+
+    record MaintenanceStats(
+            int totalMaintenanceEvents,
+            int scheduledMaintenance,
+            int emergencyMaintenance,
+            double averageMaintenanceDurationHours,
+            double maintenanceCostEstimate,
+            List<VehicleId> overdueMaintenance
     ) {}
 }

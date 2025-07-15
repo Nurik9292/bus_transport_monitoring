@@ -17,7 +17,6 @@ import tm.ugur.ugur_v3.domain.vehicleManagement.enums.VehicleStatus;
 import tm.ugur.ugur_v3.domain.vehicleManagement.events.VehicleCreatedEvent;
 import tm.ugur.ugur_v3.domain.vehicleManagement.events.VehicleLocationUpdatedEvent;
 import tm.ugur.ugur_v3.domain.vehicleManagement.events.VehicleStatusChangedEvent;
-import tm.ugur.ugur_v3.domain.vehicleManagement.events.VehicleArrivedAtStopEvent;
 
 @Getter
 public class Vehicle extends AggregateRoot<VehicleId> {
@@ -123,6 +122,7 @@ public class Vehicle extends AggregateRoot<VehicleId> {
         markAsModified();
     }
 
+
     public void updateLocationFromGpsApi(double latitude, double longitude, double accuracy,
                                          double speedMs, double bearingDegrees) {
         GeoCoordinate location = GeoCoordinate.of(latitude, longitude, accuracy);
@@ -159,7 +159,6 @@ public class Vehicle extends AggregateRoot<VehicleId> {
 
         this.assignedRouteId = routeId;
 
-        // Automatically transition to IN_ROUTE if vehicle is available
         if (status == VehicleStatus.ACTIVE || status == VehicleStatus.AT_DEPOT) {
             changeStatus(VehicleStatus.IN_ROUTE, "Assigned to route " + routeId, "SYSTEM");
         }
@@ -178,7 +177,6 @@ public class Vehicle extends AggregateRoot<VehicleId> {
         String oldRouteId = this.assignedRouteId;
         this.assignedRouteId = null;
 
-        // Transition to ACTIVE if currently in route
         if (status == VehicleStatus.IN_ROUTE) {
             changeStatus(VehicleStatus.ACTIVE, reason, "SYSTEM");
         }
@@ -196,7 +194,6 @@ public class Vehicle extends AggregateRoot<VehicleId> {
 
         this.nextMaintenanceDate = maintenanceDate;
 
-        // If maintenance is overdue, change status immediately
         if (maintenanceDate.isBefore(Timestamp.now())) {
             changeStatus(VehicleStatus.MAINTENANCE, reason, "SYSTEM");
         }
@@ -219,7 +216,6 @@ public class Vehicle extends AggregateRoot<VehicleId> {
         markAsModified();
     }
 
-    // Private helper methods
 
     private boolean isSignificantLocationChange(GeoCoordinate newLocation) {
         if (currentLocation == null) {
@@ -228,12 +224,11 @@ public class Vehicle extends AggregateRoot<VehicleId> {
 
         double distanceMeters = currentLocation.distanceTo(newLocation);
 
-        // Minimum distance varies by vehicle status
         double minimumDistance = switch (status) {
-            case IN_ROUTE -> 5.0;      // High sensitivity when in route
-            case ACTIVE -> 10.0;       // Medium sensitivity when active
-            case AT_DEPOT -> 20.0;     // Low sensitivity at depot
-            default -> 50.0;           // Very low sensitivity for other statuses
+            case IN_ROUTE -> 5.0;
+            case ACTIVE -> 10.0;
+            case AT_DEPOT -> 20.0;
+            default -> 50.0;
         };
 
         return distanceMeters >= minimumDistance;
@@ -261,11 +256,9 @@ public class Vehicle extends AggregateRoot<VehicleId> {
             if (assignedRouteId != null) {
                 String routeId = this.assignedRouteId;
                 this.assignedRouteId = null;
-                // Could add route unassignment event here
             }
         }
 
-        // Handle breakdown status
         if (newStatus == VehicleStatus.BREAKDOWN) {
             // Could trigger breakdown emergency event here
         }
@@ -304,10 +297,11 @@ public class Vehicle extends AggregateRoot<VehicleId> {
             throw new IllegalArgumentException("New status cannot be null");
         }
 
-        if (!status.canTransitionTo(newStatus)) {
+        // ✅ ИСПРАВЛЕНО: Инвертирована логика
+        if (!status.canTransitionTo(newStatus)) { // ✅ ПРАВИЛЬНО!
             throw new BusinessRuleViolationException(
-                    String.format("Cannot transition from %s to %s", status, newStatus),
-                    "INVALID_STATUS_TRANSITION"
+                    "INVALID_STATUS_TRANSITION",
+                    String.format("Cannot transition from %s to %s", status, newStatus)
             );
         }
 
@@ -318,6 +312,10 @@ public class Vehicle extends AggregateRoot<VehicleId> {
         if (changedBy == null || changedBy.trim().isEmpty()) {
             throw new IllegalArgumentException("Changed by cannot be null or empty");
         }
+
+        // Enhanced business rules
+        validateStatusChangeAuthorization(newStatus, changedBy);
+        validateStatusChangeBusinessRules(newStatus);
     }
 
     private void validateRouteAssignment(String routeId) {
@@ -364,7 +362,6 @@ public class Vehicle extends AggregateRoot<VehicleId> {
         return model.trim();
     }
 
-    // Business query methods
 
     public boolean isInRoute() {
         return assignedRouteId != null && status == VehicleStatus.IN_ROUTE;
@@ -420,5 +417,126 @@ public class Vehicle extends AggregateRoot<VehicleId> {
         ).toMinutes();
 
         return minutesSinceUpdate <= 5;
+    }
+
+
+    private void validateStatusChangeAuthorization(VehicleStatus newStatus, String changedBy) {
+        if (isCriticalStatusChange(newStatus)) {
+            if (!changedBy.startsWith("ADMIN_") && !changedBy.equals("SYSTEM")) {
+                throw new BusinessRuleViolationException(
+                        "UNAUTHORIZED_CRITICAL_STATUS_CHANGE",
+                        String.format("Status change to %s requires admin authorization (changed by: %s)",
+                                newStatus.name(), changedBy)
+                );
+            }
+        }
+
+        if (isEmergencyStatusChange(newStatus)) {
+            if (!changedBy.equals("EMERGENCY_SYSTEM") && !changedBy.startsWith("DISPATCHER_")) {
+                throw new BusinessRuleViolationException(
+                        "UNAUTHORIZED_EMERGENCY_STATUS_CHANGE",
+                        String.format("Emergency status change to %s requires dispatcher authorization",
+                                newStatus.name())
+                );
+            }
+        }
+    }
+
+    private void validateStatusChangeBusinessRules(VehicleStatus newStatus) {
+        switch (newStatus) {
+            case IN_ROUTE -> {
+                if (assignedRouteId == null) {
+                    throw new BusinessRuleViolationException(
+                            "ROUTE_REQUIRED_FOR_IN_ROUTE",
+                            "Vehicle must have assigned route before transitioning to IN_ROUTE status"
+                    );
+                }
+                if (currentLocation == null) {
+                    throw new BusinessRuleViolationException(
+                            "LOCATION_REQUIRED_FOR_IN_ROUTE",
+                            "Vehicle must have current location before starting route"
+                    );
+                }
+            }
+            case ACTIVE -> {
+                if (needsMaintenance()) {
+                    throw new BusinessRuleViolationException(
+                            "MAINTENANCE_REQUIRED_BEFORE_ACTIVATION",
+                            "Vehicle requires maintenance before activation"
+                    );
+                }
+                if (isLowFuel()) {
+                    throw new BusinessRuleViolationException(
+                            "FUEL_CHECK_REQUIRED",
+                            "Vehicle fuel level must be checked before activation"
+                    );
+                }
+            }
+            case MAINTENANCE -> {
+                if (status == VehicleStatus.IN_ROUTE) {
+                    throw new BusinessRuleViolationException(
+                            "CANNOT_MAINTENANCE_WHILE_IN_ROUTE",
+                            "Vehicle cannot enter maintenance while in route. Complete route first"
+                    );
+                }
+                if (hasPassengers()) {
+                    throw new BusinessRuleViolationException(
+                            "CANNOT_MAINTENANCE_WITH_PASSENGERS",
+                            "Vehicle cannot enter maintenance with passengers on board"
+                    );
+                }
+            }
+
+            case RETIRED -> {
+                validateRetirementEligibility();
+            }
+        }
+    }
+
+    private boolean isCriticalStatusChange(VehicleStatus newStatus) {
+        return newStatus == VehicleStatus.RETIRED ||
+                newStatus == VehicleStatus.INACTIVE;
+    }
+
+    private boolean isEmergencyStatusChange(VehicleStatus newStatus) {
+        return newStatus == VehicleStatus.BREAKDOWN;
+    }
+
+    private boolean isLowFuel() {
+        // В реальной системе это будет читаться из telemetry
+        // Пока заглушка
+        return false;
+    }
+
+    private boolean hasPassengers() {
+        // В реальной системе это будет читаться из passenger counting system
+        // Пока заглушка
+        return false;
+    }
+
+    private void logEmergencyStatusChange() {
+        // В реальной системе здесь будет отправка alert в emergency services
+        // Пока заглушка
+    }
+
+    private void validateRetirementEligibility() {
+        if (status == VehicleStatus.IN_ROUTE) {
+            throw new BusinessRuleViolationException(
+                    "CANNOT_RETIRE_WHILE_IN_ROUTE",
+                    "Vehicle cannot be retired while in route"
+            );
+        }
+
+        if (assignedRouteId != null) {
+            throw new BusinessRuleViolationException(
+                    "CANNOT_RETIRE_WITH_ASSIGNED_ROUTE",
+                    "Vehicle cannot be retired while assigned to route"
+            );
+        }
+
+        // Additional retirement checks can be added here
+        // - Outstanding maintenance issues
+        // - Financial obligations
+        // - Regulatory requirements
     }
 }
