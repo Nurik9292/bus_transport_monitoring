@@ -1,10 +1,3 @@
-/**
- * COMPONENT: GetVehiclesNearLocationHandler - Fixed Reactive Implementation
- * LAYER: Application/VehicleManagement/Queries/Handlers
- * PURPOSE: Handler для поиска транспортных средств рядом с местоположением
- * PERFORMANCE TARGET: < 150ms geospatial query processing
- * SCALABILITY: Non-blocking reactive обработка для geo queries
- */
 package tm.ugur.ugur_v3.application.vehicleManagement.queries.handlers;
 
 import lombok.RequiredArgsConstructor;

@@ -49,7 +49,7 @@ public class VehicleApplicationService {
 
         return updateLocationHandler.handle(command)
                 .doOnSuccess(result -> {
-                    if (result.isSuccess()) {
+                    if (result.isSuccessful()) {
                         log.debug("Vehicle location updated successfully: {}", vehicleId);
                         performanceMonitor.incrementCounter("vehicle.location.updated.success");
                     } else {
@@ -79,7 +79,7 @@ public class VehicleApplicationService {
         return commands
                 .flatMap(updateLocationHandler::handle, 20) // Controlled concurrency
                 .doOnNext(result -> {
-                    if (result.isSuccess()) {
+                    if (result.isSuccessful()) {
                         performanceMonitor.incrementCounter("vehicle.location.batch.success");
                     } else {
                         performanceMonitor.incrementCounter("vehicle.location.batch.failure");
@@ -100,7 +100,7 @@ public class VehicleApplicationService {
 
         return changeStatusHandler.handle(command)
                 .doOnSuccess(result -> {
-                    if (result.isSuccess()) {
+                    if (result.isSuccessful()) {
                         log.info("Vehicle status changed: {} to {}", vehicleId, newStatus);
                         performanceMonitor.incrementCounter("vehicle.status.changed.success");
                     } else {
@@ -205,7 +205,7 @@ public class VehicleApplicationService {
         return commands
                 .flatMap(changeStatusHandler::handle, 10) // Controlled concurrency for status changes
                 .doOnNext(result -> {
-                    if (result.isSuccess()) {
+                    if (result.isSuccessful()) {
                         performanceMonitor.incrementCounter("vehicle.status.batch.success");
                     } else {
                         performanceMonitor.incrementCounter("vehicle.status.batch.failure");

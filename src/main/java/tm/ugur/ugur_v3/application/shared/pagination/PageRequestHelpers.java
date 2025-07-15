@@ -1,10 +1,4 @@
-/**
- * COMPONENT: PageRequestHelpers
- * LAYER: Application/Shared/Pagination
- * PURPOSE: Utility methods для создания PageRequest в различных сценариях
- * PERFORMANCE TARGET: Zero allocation для default requests
- * SCALABILITY: Reusable patterns для pagination
- */
+
 package tm.ugur.ugur_v3.application.shared.pagination;
 
 import java.util.List;
