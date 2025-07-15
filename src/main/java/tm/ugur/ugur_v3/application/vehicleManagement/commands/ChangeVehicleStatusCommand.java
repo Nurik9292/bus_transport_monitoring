@@ -10,6 +10,8 @@ import tm.ugur.ugur_v3.application.shared.commands.Command;
 import tm.ugur.ugur_v3.domain.vehicleManagement.enums.VehicleStatus;
 import tm.ugur.ugur_v3.domain.vehicleManagement.valueobjects.VehicleId;
 
+import java.time.Instant;
+
 @Builder
 public record ChangeVehicleStatusCommand(
         @NotNull(message = "Vehicle ID cannot be null")
@@ -29,7 +31,7 @@ public record ChangeVehicleStatusCommand(
 
         @NotNull(message = "Timestamp cannot be null")
         @PastOrPresent(message = "Timestamp cannot be in the future")
-        java.time.Instant timestamp
+        Instant timestamp
 ) implements Command {
 
     public static ChangeVehicleStatusCommand create(VehicleId vehicleId,
@@ -41,7 +43,7 @@ public record ChangeVehicleStatusCommand(
                 .newStatus(newStatus)
                 .reason(reason)
                 .changedBy(changedBy)
-                .timestamp(java.time.Instant.now())
+                .timestamp(Instant.now())
                 .build();
     }
 
@@ -53,7 +55,7 @@ public record ChangeVehicleStatusCommand(
                 .newStatus(newStatus)
                 .reason(reason)
                 .changedBy("SYSTEM")
-                .timestamp(java.time.Instant.now())
+                .timestamp(Instant.now())
                 .build();
     }
 

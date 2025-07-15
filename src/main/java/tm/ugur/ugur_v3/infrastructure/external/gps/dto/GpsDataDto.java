@@ -1,5 +1,8 @@
 package tm.ugur.ugur_v3.infrastructure.external.gps.dto;
 
+import java.time.Instant;
+import java.util.Map;
+
 public record GpsDataDto(
         String vehicleId,
         double latitude,
