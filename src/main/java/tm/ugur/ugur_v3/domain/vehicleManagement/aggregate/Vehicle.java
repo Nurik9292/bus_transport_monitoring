@@ -138,10 +138,8 @@ public class Vehicle extends AggregateRoot<VehicleId> {
         VehicleStatus oldStatus = this.status;
         this.status = newStatus;
 
-        // Handle side effects of status change
         handleStatusChangeEffects(oldStatus, newStatus);
 
-        // Publish status change event
         addDomainEvent(VehicleStatusChangedEvent.of(
                 getId(),
                 oldStatus,

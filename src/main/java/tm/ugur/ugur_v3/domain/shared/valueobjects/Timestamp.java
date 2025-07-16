@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 
 @Getter
 public final class Timestamp extends ValueObject {
@@ -48,6 +49,8 @@ public final class Timestamp extends ValueObject {
         }
     }
 
+    // ====================== COMPARISON METHODS ======================
+
     public boolean isBefore(Timestamp other) {
         return this.epochMillis < other.epochMillis;
     }
@@ -68,6 +71,8 @@ public final class Timestamp extends ValueObject {
         return Math.abs(this.epochMillis - other.epochMillis);
     }
 
+    // ====================== ARITHMETIC OPERATIONS ======================
+
     public Timestamp plusMillis(long millis) {
         return new Timestamp(this.epochMillis + millis);
     }
@@ -76,11 +81,54 @@ public final class Timestamp extends ValueObject {
         return new Timestamp(this.epochMillis - millis);
     }
 
+    public Timestamp plusSeconds(long seconds) {
+        return new Timestamp(this.epochMillis + (seconds * 1000));
+    }
+
+    public Timestamp minusSeconds(long seconds) {
+        return new Timestamp(this.epochMillis - (seconds * 1000));
+    }
+
+    public Timestamp plusMinutes(long minutes) {
+        return new Timestamp(this.epochMillis + (minutes * 60 * 1000));
+    }
+
+    public Timestamp minusMinutes(long minutes) {
+        return new Timestamp(this.epochMillis - (minutes * 60 * 1000));
+    }
+
+    public Timestamp plusHours(long hours) {
+        return new Timestamp(this.epochMillis + (hours * 60 * 60 * 1000));
+    }
+
+    public Timestamp minusHours(long hours) {
+        return new Timestamp(this.epochMillis - (hours * 60 * 60 * 1000));
+    }
+
+    public Timestamp plusDays(long days) {
+        return new Timestamp(this.epochMillis + (days * 24 * 60 * 60 * 1000));
+    }
+
+    public Timestamp minusDays(long days) {
+        return new Timestamp(this.epochMillis - (days * 24 * 60 * 60 * 1000));
+    }
+
+    public Timestamp plusWeeks(long weeks) {
+        return plusDays(weeks * 7);
+    }
+
+    public Timestamp minusWeeks(long weeks) {
+        return minusDays(weeks * 7);
+    }
+
 
     public LocalDateTime toLocalDateTime(ZoneId zoneId) {
         return LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMillis), zoneId);
     }
 
+    public LocalDateTime toLocalDateTime() {
+        return toLocalDateTime(ZoneId.systemDefault());
+    }
 
     public LocalDateTime toUtcLocalDateTime() {
         return toLocalDateTime(ZoneOffset.UTC);
@@ -89,6 +137,63 @@ public final class Timestamp extends ValueObject {
     public Instant toInstant() {
         return Instant.ofEpochMilli(epochMillis);
     }
+
+
+    public long hoursBetween(Timestamp other) {
+        return Math.abs(this.epochMillis - other.epochMillis) / (60 * 60 * 1000);
+    }
+
+    public long daysBetween(Timestamp other) {
+        return Math.abs(this.epochMillis - other.epochMillis) / (24 * 60 * 60 * 1000);
+    }
+
+    public boolean isSameDay(Timestamp other) {
+        LocalDateTime thisDay = toUtcLocalDateTime().truncatedTo(ChronoUnit.DAYS);
+        LocalDateTime otherDay = other.toUtcLocalDateTime().truncatedTo(ChronoUnit.DAYS);
+        return thisDay.equals(otherDay);
+    }
+
+    public Timestamp startOfDay() {
+        LocalDateTime startOfDay = toUtcLocalDateTime().truncatedTo(ChronoUnit.DAYS);
+        return Timestamp.of(startOfDay);
+    }
+
+    public Timestamp endOfDay() {
+        LocalDateTime endOfDay = toUtcLocalDateTime().truncatedTo(ChronoUnit.DAYS)
+                .plusDays(1).minusNanos(1);
+        return Timestamp.of(endOfDay);
+    }
+
+    public boolean isBetween(Timestamp start, Timestamp end) {
+        return !this.isBefore(start) && !this.isAfter(end);
+    }
+
+    public String toLogFormat() {
+        return toUtcLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    }
+
+    public String toUserFormat() {
+        return toLocalDateTime().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
+    }
+
+
+    public static Timestamp parse(String isoString) {
+        try {
+            Instant instant = Instant.parse(isoString);
+            return Timestamp.of(instant);
+        } catch (Exception e) {
+            throw new InvalidTimestampException("Invalid timestamp format: " + isoString);
+        }
+    }
+
+    public static Timestamp startOfToday() {
+        return Timestamp.now().startOfDay();
+    }
+
+    public static Timestamp endOfToday() {
+        return Timestamp.now().endOfDay();
+    }
+
 
     @Override
     protected Object[] getEqualityComponents() {
