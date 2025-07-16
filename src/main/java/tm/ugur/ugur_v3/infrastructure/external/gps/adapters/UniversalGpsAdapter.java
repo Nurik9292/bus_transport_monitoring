@@ -9,44 +9,63 @@ import java.util.List;
 
 @Component
 public class UniversalGpsAdapter implements GpsDataProvider {
-
-    private final List<GpsDataProvider> providers;
-    private final GpsProviderHealthMonitor healthMonitor;
-    private final GpsLoadBalancer loadBalancer;
-
-    public UniversalGpsAdapter(List<GpsDataProvider> providers,
-                               GpsProviderHealthMonitor healthMonitor,
-                               GpsLoadBalancer loadBalancer) {
-        this.providers = providers.stream()
-                .filter(p -> !(p instanceof UniversalGpsAdapter))
-                .toList();
-        this.healthMonitor = healthMonitor;
-        this.loadBalancer = loadBalancer;
-    }
-
     @Override
     public Flux<GpsLocationData> getVehicleLocations() {
-        return loadBalancer.selectHealthyProviders(providers)
-                .flatMap(GpsDataProvider::getVehicleLocations)
-                .distinct(data -> data.vehicleIdentifier()) // Deduplicate
-                .doOnNext(data -> healthMonitor.recordSuccessfulRequest(getProviderName()))
-                .doOnError(error -> healthMonitor.recordFailedRequest(getProviderName()));
+        return null;
     }
 
     @Override
     public String getProviderName() {
-        return "Universal-GPS-Adapter";
+        return "";
     }
 
     @Override
     public Mono<Boolean> isAvailable() {
-        return Flux.fromIterable(providers)
-                .flatMap(GpsDataProvider::isAvailable)
-                .any(available -> available);
+        return null;
     }
 
     @Override
     public Mono<ProviderHealthStatus> getHealthStatus() {
-        return healthMonitor.getAggregatedHealth(providers);
+        return null;
     }
+
+//    private final List<GpsDataProvider> providers;
+//    private final GpsProviderHealthMonitor healthMonitor;
+//    private final GpsLoadBalancer loadBalancer;
+//
+//    public UniversalGpsAdapter(List<GpsDataProvider> providers,
+//                               GpsProviderHealthMonitor healthMonitor,
+//                               GpsLoadBalancer loadBalancer) {
+//        this.providers = providers.stream()
+//                .filter(p -> !(p instanceof UniversalGpsAdapter))
+//                .toList();
+//        this.healthMonitor = healthMonitor;
+//        this.loadBalancer = loadBalancer;
+//    }
+//
+//    @Override
+//    public Flux<GpsLocationData> getVehicleLocations() {
+//        return loadBalancer.selectHealthyProviders(providers)
+//                .flatMap(GpsDataProvider::getVehicleLocations)
+//                .distinct(data -> data.vehicleIdentifier()) // Deduplicate
+//                .doOnNext(data -> healthMonitor.recordSuccessfulRequest(getProviderName()))
+//                .doOnError(error -> healthMonitor.recordFailedRequest(getProviderName()));
+//    }
+//
+//    @Override
+//    public String getProviderName() {
+//        return "Universal-GPS-Adapter";
+//    }
+//
+//    @Override
+//    public Mono<Boolean> isAvailable() {
+//        return Flux.fromIterable(providers)
+//                .flatMap(GpsDataProvider::isAvailable)
+//                .any(available -> available);
+//    }
+//
+//    @Override
+//    public Mono<ProviderHealthStatus> getHealthStatus() {
+//        return healthMonitor.getAggregatedHealth(providers);
+//    }
 }

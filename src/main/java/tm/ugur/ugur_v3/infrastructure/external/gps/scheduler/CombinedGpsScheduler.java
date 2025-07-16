@@ -1,10 +1,3 @@
-/**
- * COMPONENT: CombinedGpsScheduler
- * LAYER: Infrastructure/External/GPS/Scheduler
- * PURPOSE: Coordinated scheduling for both TUGDK and AYAUK APIs
- * PERFORMANCE TARGET: < 10ms scheduling overhead, intelligent coordination
- * SCALABILITY: Non-blocking scheduling for both GPS and route data
- */
 package tm.ugur.ugur_v3.infrastructure.external.gps.scheduler;
 
 import lombok.RequiredArgsConstructor;

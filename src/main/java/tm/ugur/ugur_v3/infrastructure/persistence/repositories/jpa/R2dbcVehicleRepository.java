@@ -1,5 +1,6 @@
 package tm.ugur.ugur_v3.infrastructure.persistence.repositories.jpa;
 
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -16,6 +17,14 @@ import java.util.List;
 
 @Repository
 public class R2dbcVehicleRepository implements VehicleRepository {
+
+    private final R2dbcEntityTemplate r2dbcEntityTemplate;
+
+
+    public R2dbcVehicleRepository(R2dbcEntityTemplate r2dbcEntityTemplate) {
+        this.r2dbcEntityTemplate = r2dbcEntityTemplate;
+    }
+
     @Override
     public Mono<Vehicle> save(Vehicle vehicle) {
         return null;

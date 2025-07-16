@@ -2,7 +2,6 @@
 package tm.ugur.ugur_v3.infrastructure.external.gps.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Builder;
 import lombok.Getter;
 
 import java.time.Instant;
