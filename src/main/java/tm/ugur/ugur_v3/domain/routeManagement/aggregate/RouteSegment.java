@@ -1,9 +1,9 @@
 package tm.ugur.ugur_v3.domain.routeManagement.aggregate;
 
 import lombok.Getter;
+import tm.ugur.ugur_v3.domain.routeManagement.valueobjects.Distance;
 import tm.ugur.ugur_v3.domain.shared.entities.Entity;
 import tm.ugur.ugur_v3.domain.shared.exceptions.BusinessRuleViolationException;
-import tm.ugur.ugur_v3.domain.routeManagement.valueobjects.Distance;
 import tm.ugur.ugur_v3.domain.routeManagement.valueobjects.EstimatedDuration;
 import tm.ugur.ugur_v3.domain.routeManagement.valueobjects.RouteSegmentId;
 import tm.ugur.ugur_v3.domain.stopManagement.valueobjects.StopId;
@@ -32,8 +32,10 @@ public class RouteSegment extends Entity<RouteSegmentId> {
     private final EstimatedDuration offPeakTime;
     private final EstimatedDuration nightTime;
 
-    public static RouteSegment create(StopId fromStopId, StopId toStopId,
-                                      Distance distance, EstimatedDuration estimatedTime) {
+    public static RouteSegment create(StopId fromStopId,
+                                      StopId toStopId,
+                                      Distance distance,
+                                      EstimatedDuration estimatedTime) {
         return new RouteSegment(
                 RouteSegmentId.generate(),
                 fromStopId,

@@ -1,19 +1,20 @@
 package tm.ugur.ugur_v3.domain.routeManagement.aggregate;
 
 import lombok.Getter;
-import tm.ugur.ugur_v3.domain.shared.entities.AggregateRoot;
-import tm.ugur.ugur_v3.domain.shared.valueobjects.GeoCoordinate;
-import tm.ugur.ugur_v3.domain.shared.valueobjects.Timestamp;
-import tm.ugur.ugur_v3.domain.shared.exceptions.BusinessRuleViolationException;
-import tm.ugur.ugur_v3.domain.routeManagement.valueobjects.*;
-import tm.ugur.ugur_v3.domain.routeManagement.enums.RouteStatus;
 import tm.ugur.ugur_v3.domain.routeManagement.enums.RouteDirection;
+import tm.ugur.ugur_v3.domain.routeManagement.enums.RouteStatus;
 import tm.ugur.ugur_v3.domain.routeManagement.enums.RouteType;
 import tm.ugur.ugur_v3.domain.routeManagement.events.*;
+import tm.ugur.ugur_v3.domain.routeManagement.valueobjects.*;
+import tm.ugur.ugur_v3.domain.shared.entities.AggregateRoot;
+import tm.ugur.ugur_v3.domain.shared.exceptions.BusinessRuleViolationException;
+import tm.ugur.ugur_v3.domain.shared.valueobjects.Timestamp;
 import tm.ugur.ugur_v3.domain.stopManagement.valueobjects.StopId;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 @Getter
 public class Route extends AggregateRoot<RouteId> {
@@ -151,7 +152,7 @@ public class Route extends AggregateRoot<RouteId> {
         markAsModified();
 
         addDomainEvent(RouteStopAddedEvent.of(
-                getId(), stopId, position, distanceFromPrevious, stopSequence.size()
+                    getId(), stopId, position, distanceFromPrevious, stopSequence.size()
         ));
     }
 

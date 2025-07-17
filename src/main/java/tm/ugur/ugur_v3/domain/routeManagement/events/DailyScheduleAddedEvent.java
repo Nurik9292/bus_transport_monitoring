@@ -70,7 +70,6 @@ public final class DailyScheduleAddedEvent implements DomainEvent {
                 Method getTripCount = dailySchedule.getClass().getMethod("getTripCount");
                 tripCount = (Integer) getTripCount.invoke(dailySchedule);
             } catch (Exception e) {
-                // Fallback to default
             }
         }
 

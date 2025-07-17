@@ -1,9 +1,10 @@
 package tm.ugur.ugur_v3.domain.shared.valueobjects;
 
+import lombok.Getter;
 import tm.ugur.ugur_v3.domain.shared.exceptions.InvalidGeoCoordinateException;
 
-import java.util.Objects;
 
+@Getter
 public final class GeoCoordinate extends ValueObject {
 
     public static final double MIN_LATITUDE = -90.0;
@@ -135,11 +136,6 @@ public final class GeoCoordinate extends ValueObject {
         return longitudeRadians;
     }
 
-    public double getLatitude() { return latitude; }
-    public double getLongitude() { return longitude; }
-    public double getAccuracy() { return accuracy; }
-    public double getAltitude() { return altitude; }
-    public long getTimestamp() { return timestamp; }
 
     @Override
     protected Object[] getEqualityComponents() {
