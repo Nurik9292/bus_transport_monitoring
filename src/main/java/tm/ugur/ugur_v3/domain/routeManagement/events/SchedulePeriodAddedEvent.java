@@ -2,87 +2,54 @@ package tm.ugur.ugur_v3.domain.routeManagement.events;
 
 import lombok.Getter;
 import tm.ugur.ugur_v3.domain.routeManagement.valueobjects.RouteId;
-import tm.ugur.ugur_v3.domain.routeManagement.valueobjects.RouteScheduleId;
-import tm.ugur.ugur_v3.domain.shared.events.DomainEvent;
-import tm.ugur.ugur_v3.domain.shared.valueobjects.Timestamp;
+import tm.ugur.ugur_v3.domain.routeManagement.valueobjects.SchedulePeriod;
 
-import java.util.HashMap;
+import java.time.DayOfWeek;
+import java.time.LocalTime;
 import java.util.Map;
-import java.util.UUID;
+import java.util.Set;
 
 @Getter
-public final class SchedulePeriodAddedEvent implements DomainEvent {
+public final class SchedulePeriodAddedEvent extends BaseRouteEvent {
 
-    private final String eventId;
-    private final String eventType;
-    private final Timestamp occurredAt;
-    private final String aggregateId;
-    private final String aggregateType;
-    private final Long version;
-    private final String correlationId;
-
-    private final RouteScheduleId scheduleId;
-    private final RouteId routeId;
+    private final SchedulePeriod schedulePeriod;
     private final String periodName;
-    private final String startTime;
-    private final String endTime;
+    private final LocalTime startTime;
+    private final LocalTime endTime;
+    private final Set<DayOfWeek> operatingDays;
     private final int headwayMinutes;
+    private final SchedulePeriod.PeriodType periodType;
     private final String addedBy;
-    private final Map<String, Object> metadata;
 
-    private SchedulePeriodAddedEvent(
-            RouteScheduleId scheduleId,
-            RouteId routeId,
-            String periodName,
-            String startTime,
-            String endTime,
-            int headwayMinutes,
-            String addedBy,
-            String correlationId,
-            Map<String, Object> metadata) {
-        this.eventId = UUID.randomUUID().toString();
-        this.eventType = "SchedulePeriodAdded";
-        this.occurredAt = Timestamp.now();
-        this.aggregateId = scheduleId.getValue();
-        this.aggregateType = "RouteSchedule";
-        this.version = 1L;
-        this.correlationId = correlationId;
-
-        this.scheduleId = scheduleId;
-        this.routeId = routeId;
-        this.periodName = periodName;
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.headwayMinutes = headwayMinutes;
+    private SchedulePeriodAddedEvent(RouteId routeId, SchedulePeriod schedulePeriod, String addedBy,
+                                     String correlationId, Map<String, Object> metadata) {
+        super("SchedulePeriodAdded", routeId, correlationId, metadata);
+        this.schedulePeriod = schedulePeriod;
+        this.periodName = schedulePeriod.getName();
+        this.startTime = schedulePeriod.getStartTime();
+        this.endTime = schedulePeriod.getEndTime();
+        this.operatingDays = schedulePeriod.getOperatingDays();
+        this.headwayMinutes = schedulePeriod.getHeadwayMinutes();
+        this.periodType = schedulePeriod.getPeriodType();
         this.addedBy = addedBy;
-        this.metadata = metadata != null ? new HashMap<>(metadata) : new HashMap<>();
     }
 
-    public static SchedulePeriodAddedEvent of(
-            RouteScheduleId scheduleId,
-            RouteId routeId,
-            Object period,
-            String addedBy) {
-        String periodName = "";
-        String startTime = "";
-        String endTime = "";
-        int headwayMinutes = 0;
+    public static SchedulePeriodAddedEvent of(RouteId routeId, SchedulePeriod schedulePeriod, String addedBy) {
+        return new SchedulePeriodAddedEvent(routeId, schedulePeriod, addedBy, null, null);
+    }
 
-        if (period != null) {
-            try {
-                periodName = (String) period.getClass().getMethod("getPeriodName").invoke(period);
-                Object start = period.getClass().getMethod("getStartTime").invoke(period);
-                Object end = period.getClass().getMethod("getEndTime").invoke(period);
-                headwayMinutes = (Integer) period.getClass().getMethod("getHeadwayMinutes").invoke(period);
+    public static SchedulePeriodAddedEvent of(RouteId routeId, SchedulePeriod schedulePeriod, String addedBy,
+                                              String correlationId) {
+        return new SchedulePeriodAddedEvent(routeId, schedulePeriod, addedBy, correlationId, null);
+    }
 
-                startTime = start != null ? start.toString() : "";
-                endTime = end != null ? end.toString() : "";
-            } catch (Exception e) {
-                // Fallback to defaults
-            }
-        }
+    public boolean isRushHourPeriod() { return periodType == SchedulePeriod.PeriodType.RUSH_HOUR; }
+    public boolean isHighFrequency() { return headwayMinutes <= 10; }
+    public boolean isWeekendOnly() { return operatingDays.contains(DayOfWeek.SATURDAY) || operatingDays.contains(DayOfWeek.SUNDAY); }
 
-        return new SchedulePeriodAddedEvent(scheduleId, routeId, periodName, startTime, endTime,
-                headwayMinutes, addedBy, null, null);
+    @Override
+    public String toString() {
+        return String.format("SchedulePeriodAddedEvent{routeId=%s, period='%s', type=%s, headway=%dmin, days=%s}",
+                routeId, periodName, periodType, headwayMinutes, operatingDays.size());
     }
 }

@@ -2,81 +2,105 @@ package tm.ugur.ugur_v3.domain.routeManagement.events;
 
 import lombok.Getter;
 import tm.ugur.ugur_v3.domain.routeManagement.valueobjects.RouteId;
-import tm.ugur.ugur_v3.domain.routeManagement.valueobjects.RouteScheduleId;
-import tm.ugur.ugur_v3.domain.shared.events.DomainEvent;
-import tm.ugur.ugur_v3.domain.shared.valueobjects.Timestamp;
 
 import java.time.DayOfWeek;
 import java.time.LocalTime;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 @Getter
-public final class ScheduleDynamicallyAdjustedEvent implements DomainEvent {
+public final class ScheduleDynamicallyAdjustedEvent extends BaseRouteEvent {
 
-    private final String eventId;
-    private final String eventType;
-    private final Timestamp occurredAt;
-    private final String aggregateId;
-    private final String aggregateType;
-    private final Long version;
-    private final String correlationId;
-
-    private final RouteScheduleId scheduleId;
-    private final RouteId routeId;
-    private final String dayOfWeek;
-    private final String adjustmentTime;
+    private final DayOfWeek dayOfWeek;
+    private final LocalTime originalTime;
+    private final LocalTime adjustedTime;
     private final int adjustmentMinutes;
-    private final String reason;
+    private final String adjustmentReason;
     private final String adjustedBy;
-    private final Map<String, Object> metadata;
+    private final AdjustmentType adjustmentType;
+    private final AdjustmentSeverity severity;
+    private final boolean isAutomaticAdjustment;
 
-    private ScheduleDynamicallyAdjustedEvent(
-            RouteScheduleId scheduleId,
-            RouteId routeId,
-            String dayOfWeek,
-            String adjustmentTime,
-            int adjustmentMinutes,
-            String reason,
-            String adjustedBy,
-            String correlationId,
-            Map<String, Object> metadata) {
-        this.eventId = UUID.randomUUID().toString();
-        this.eventType = "ScheduleDynamicallyAdjusted";
-        this.occurredAt = Timestamp.now();
-        this.aggregateId = scheduleId.getValue();
-        this.aggregateType = "RouteSchedule";
-        this.version = 1L;
-        this.correlationId = correlationId;
-
-        this.scheduleId = scheduleId;
-        this.routeId = routeId;
+    private ScheduleDynamicallyAdjustedEvent(RouteId routeId, DayOfWeek dayOfWeek, LocalTime originalTime,
+                                             int adjustmentMinutes, String adjustmentReason, String adjustedBy,
+                                             AdjustmentType adjustmentType, boolean isAutomaticAdjustment,
+                                             String correlationId, Map<String, Object> metadata) {
+        super("ScheduleDynamicallyAdjusted", routeId, correlationId, metadata);
         this.dayOfWeek = dayOfWeek;
-        this.adjustmentTime = adjustmentTime;
+        this.originalTime = originalTime;
         this.adjustmentMinutes = adjustmentMinutes;
-        this.reason = reason;
+        this.adjustedTime = originalTime.plusMinutes(adjustmentMinutes);
+        this.adjustmentReason = adjustmentReason;
         this.adjustedBy = adjustedBy;
-        this.metadata = metadata != null ? new HashMap<>(metadata) : new HashMap<>();
+        this.adjustmentType = adjustmentType;
+        this.isAutomaticAdjustment = isAutomaticAdjustment;
+        this.severity = determineSeverity(adjustmentMinutes);
     }
 
-    public static ScheduleDynamicallyAdjustedEvent of(
-            RouteScheduleId scheduleId,
-            RouteId routeId,
-            DayOfWeek dayOfWeek,
-            LocalTime time,
-            int adjustmentMinutes,
-            String reason,
-            String adjustedBy) {
-        return new ScheduleDynamicallyAdjustedEvent(
-                scheduleId,
-                routeId,
-                dayOfWeek.toString(),
-                time.toString(),
-                adjustmentMinutes,
-                reason,
-                adjustedBy,
-                null,
-                null);
+    public static ScheduleDynamicallyAdjustedEvent delay(RouteId routeId, DayOfWeek dayOfWeek, LocalTime originalTime,
+                                                         int delayMinutes, String reason, String adjustedBy) {
+        return new ScheduleDynamicallyAdjustedEvent(routeId, dayOfWeek, originalTime, delayMinutes, reason,
+                adjustedBy, AdjustmentType.DELAY, false, null, null);
+    }
+
+    public static ScheduleDynamicallyAdjustedEvent advance(RouteId routeId, DayOfWeek dayOfWeek, LocalTime originalTime,
+                                                           int advanceMinutes, String reason, String adjustedBy) {
+        return new ScheduleDynamicallyAdjustedEvent(routeId, dayOfWeek, originalTime, -advanceMinutes, reason,
+                adjustedBy, AdjustmentType.ADVANCE, false, null, null);
+    }
+
+    public static ScheduleDynamicallyAdjustedEvent automatic(RouteId routeId, DayOfWeek dayOfWeek, LocalTime originalTime,
+                                                             int adjustmentMinutes, String reason) {
+        AdjustmentType type = adjustmentMinutes > 0 ? AdjustmentType.DELAY : AdjustmentType.ADVANCE;
+        return new ScheduleDynamicallyAdjustedEvent(routeId, dayOfWeek, originalTime, adjustmentMinutes, reason,
+                "SYSTEM", type, true, null, null);
+    }
+
+    private AdjustmentSeverity determineSeverity(int adjustmentMinutes) {
+        int absMinutes = Math.abs(adjustmentMinutes);
+        if (absMinutes >= 30) return AdjustmentSeverity.CRITICAL;
+        if (absMinutes >= 15) return AdjustmentSeverity.HIGH;
+        if (absMinutes >= 5) return AdjustmentSeverity.MEDIUM;
+        return AdjustmentSeverity.LOW;
+    }
+
+    public boolean isDelay() { return adjustmentMinutes > 0; }
+    public boolean isAdvance() { return adjustmentMinutes < 0; }
+    public boolean isSignificantAdjustment() { return Math.abs(adjustmentMinutes) > 10; }
+    public boolean requiresPassengerNotification() { return severity.ordinal() >= AdjustmentSeverity.MEDIUM.ordinal(); }
+
+    public enum AdjustmentType {
+        DELAY("Задержка"),
+        ADVANCE("Опережение"),
+        CANCELLATION("Отмена"),
+        FREQUENCY_CHANGE("Изменение частоты");
+
+        private final String displayName;
+
+        AdjustmentType(String displayName) {
+            this.displayName = displayName;
+        }
+
+        @Override
+        public String toString() { return displayName; }
+    }
+
+    public enum AdjustmentSeverity {
+        LOW("Незначительная"), MEDIUM("Средняя"), HIGH("Высокая"), CRITICAL("Критическая");
+
+        private final String displayName;
+
+        AdjustmentSeverity(String displayName) {
+            this.displayName = displayName;
+        }
+
+        @Override
+        public String toString() { return displayName; }
+    }
+
+    @Override
+    public String toString() {
+        String direction = isDelay() ? "delayed" : "advanced";
+        return String.format("ScheduleDynamicallyAdjustedEvent{routeId=%s, %s %s %s by %d min (%s): %s}",
+                routeId, dayOfWeek, originalTime, direction, Math.abs(adjustmentMinutes), severity, adjustmentReason);
     }
 }

@@ -4,11 +4,10 @@ import lombok.Getter;
 
 @Getter
 public enum ScheduleType {
-    FIXED("Fixed Schedule", "Traditional fixed timetable"),
-    FLEXIBLE("Flexible Schedule", "Allows dynamic adjustments"),
-    FREQUENCY_BASED("Frequency Based", "Based on headway rather than fixed times"),
-    DEMAND_RESPONSIVE("Demand Responsive", "Adjusts based on passenger demand"),
-    HYBRID("Hybrid", "Combination of fixed and flexible elements");
+    FIXED("Фиксированное", "Строгое расписание с фиксированными временами отправления"),
+    FLEXIBLE("Гибкое", "Гибкое расписание с возможностью корректировок"),
+    FREQUENCY_BASED("По частоте", "Расписание основанное на интервалах движения"),
+    ON_DEMAND("По требованию", "Движение по запросу пассажиров");
 
     private final String displayName;
     private final String description;
@@ -18,15 +17,16 @@ public enum ScheduleType {
         this.description = description;
     }
 
-    public boolean allowsDynamicChanges() {
-        return this != FIXED;
+    public boolean allowsFlexibility() {
+        return this == FLEXIBLE || this == FREQUENCY_BASED;
     }
 
-    public boolean isFixedTimetable() {
-        return this == FIXED || this == HYBRID;
+    public boolean requiresExactTiming() {
+        return this == FIXED;
     }
 
-    public boolean isFrequencyBased() {
-        return this == FREQUENCY_BASED || this == DEMAND_RESPONSIVE;
+    @Override
+    public String toString() {
+        return displayName;
     }
 }

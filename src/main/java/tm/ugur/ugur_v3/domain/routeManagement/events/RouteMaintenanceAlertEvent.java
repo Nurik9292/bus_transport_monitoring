@@ -2,88 +2,61 @@ package tm.ugur.ugur_v3.domain.routeManagement.events;
 
 import lombok.Getter;
 import tm.ugur.ugur_v3.domain.routeManagement.valueobjects.RouteId;
-import tm.ugur.ugur_v3.domain.shared.events.DomainEvent;
-import tm.ugur.ugur_v3.domain.shared.valueobjects.Timestamp;
 
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Getter
-public final class RouteMaintenanceAlertEvent implements DomainEvent {
+public final class RouteMaintenanceAlertEvent extends BaseRouteEvent {
 
-    private final String eventId;
-    private final String eventType;
-    private final Timestamp occurredAt;
-    private final String aggregateId;
-    private final String aggregateType;
-    private final Long version;
-    private final String correlationId;
-
-    private final RouteId routeId;
     private final String maintenanceNotes;
-    private final double currentOnTimePerformance;
-    private final double currentAverageSpeed;
-    private final MaintenanceUrgency urgency;
-    private final Timestamp recommendedMaintenanceDate;
-    private final String[] affectedSystems;
-    private final Map<String, Object> metadata;
+    private final double onTimePerformance;
+    private final double averageSpeed;
+    private final List<String> issues;
+    private final AlertSeverity severity;
+    private final boolean requiresImmediateAction;
 
-    private RouteMaintenanceAlertEvent(RouteId routeId, String maintenanceNotes,
-                                       double currentOnTimePerformance, double currentAverageSpeed,
-                                       MaintenanceUrgency urgency, Timestamp recommendedMaintenanceDate,
-                                       String[] affectedSystems, String correlationId,
-                                       Map<String, Object> metadata) {
-        this.eventId = UUID.randomUUID().toString();
-        this.eventType = "RouteMaintenanceAlert";
-        this.occurredAt = Timestamp.now();
-        this.aggregateId = routeId.getValue();
-        this.aggregateType = "Route";
-        this.version = 1L;
-        this.correlationId = correlationId;
-
-        this.routeId = routeId;
+    private RouteMaintenanceAlertEvent(RouteId routeId, String maintenanceNotes, double onTimePerformance,
+                                       double averageSpeed, List<String> issues, AlertSeverity severity,
+                                       String correlationId, Map<String, Object> metadata) {
+        super("RouteMaintenanceAlert", routeId, correlationId, metadata);
         this.maintenanceNotes = maintenanceNotes;
-        this.currentOnTimePerformance = currentOnTimePerformance;
-        this.currentAverageSpeed = currentAverageSpeed;
-        this.urgency = urgency != null ? urgency : determineUrgency(currentOnTimePerformance);
-        this.recommendedMaintenanceDate = recommendedMaintenanceDate != null ?
-                recommendedMaintenanceDate : calculateMaintenanceDate(this.urgency);
-        this.affectedSystems = affectedSystems != null ? affectedSystems : new String[]{};
-        this.metadata = metadata != null ? new HashMap<>(metadata) : new HashMap<>();
+        this.onTimePerformance = onTimePerformance;
+        this.averageSpeed = averageSpeed;
+        this.issues = issues != null ? List.copyOf(issues) : List.of();
+        this.severity = severity;
+        this.requiresImmediateAction = severity == AlertSeverity.CRITICAL || severity == AlertSeverity.HIGH;
     }
 
     public static RouteMaintenanceAlertEvent of(RouteId routeId, String maintenanceNotes,
-                                                double currentOnTimePerformance, double currentAverageSpeed) {
-        return new RouteMaintenanceAlertEvent(routeId, maintenanceNotes, currentOnTimePerformance,
-                currentAverageSpeed, null, null, null, null, null);
+                                                double onTimePerformance, double averageSpeed) {
+        AlertSeverity severity = determineSeverity(onTimePerformance, averageSpeed);
+        return new RouteMaintenanceAlertEvent(routeId, maintenanceNotes, onTimePerformance,
+                averageSpeed, null, severity, null, null);
     }
 
     public static RouteMaintenanceAlertEvent of(RouteId routeId, String maintenanceNotes,
-                                                double currentOnTimePerformance, double currentAverageSpeed,
-                                                MaintenanceUrgency urgency) {
-        return new RouteMaintenanceAlertEvent(routeId, maintenanceNotes, currentOnTimePerformance,
-                currentAverageSpeed, urgency, null, null, null, null);
+                                                double onTimePerformance, double averageSpeed,
+                                                List<String> issues) {
+        AlertSeverity severity = determineSeverity(onTimePerformance, averageSpeed);
+        return new RouteMaintenanceAlertEvent(routeId, maintenanceNotes, onTimePerformance,
+                averageSpeed, issues, severity, null, null);
     }
 
-    private static MaintenanceUrgency determineUrgency(double onTimePerformance) {
-        if (onTimePerformance < 50.0) return MaintenanceUrgency.CRITICAL;
-        if (onTimePerformance < 70.0) return MaintenanceUrgency.HIGH;
-        if (onTimePerformance < 85.0) return MaintenanceUrgency.MEDIUM;
-        return MaintenanceUrgency.LOW;
+    private static AlertSeverity determineSeverity(double onTimePerformance, double averageSpeed) {
+        if (onTimePerformance < 50.0 || averageSpeed < 10.0) return AlertSeverity.CRITICAL;
+        if (onTimePerformance < 70.0 || averageSpeed < 15.0) return AlertSeverity.HIGH;
+        if (onTimePerformance < 80.0 || averageSpeed < 20.0) return AlertSeverity.MEDIUM;
+        return AlertSeverity.LOW;
     }
 
-    private static Timestamp calculateMaintenanceDate(MaintenanceUrgency urgency) {
-        long hoursFromNow = switch (urgency) {
-            case CRITICAL -> 4;
-            case HIGH -> 24;
-            case MEDIUM -> 72;
-            case LOW -> 168;
-        };
-        return Timestamp.now().plusHours(hoursFromNow);
+    public enum AlertSeverity {
+        LOW, MEDIUM, HIGH, CRITICAL
     }
 
-    public enum MaintenanceUrgency {
-        CRITICAL, HIGH, MEDIUM, LOW
+    @Override
+    public String toString() {
+        return String.format("RouteMaintenanceAlertEvent{routeId=%s, severity=%s, onTime=%.1f%%, speed=%.1f}",
+                routeId, severity, onTimePerformance, averageSpeed);
     }
 }

@@ -1,10 +1,9 @@
 package tm.ugur.ugur_v3.domain.routeManagement.valueobjects;
 
 import lombok.Getter;
-import tm.ugur.ugur_v3.domain.shared.exceptions.BusinessRuleViolationException;
 import tm.ugur.ugur_v3.domain.shared.valueobjects.EntityId;
 
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.UUID;
 
 @Getter
 public final class RouteScheduleId extends EntityId {
@@ -16,16 +15,11 @@ public final class RouteScheduleId extends EntityId {
     }
 
     public static RouteScheduleId of(String value) {
-        if (value == null || value.trim().isEmpty()) {
-            throw new BusinessRuleViolationException("ROUTE_SCHEDULED_ID", "RouteScheduleId cannot be empty");
-        }
-        return new RouteScheduleId(value.trim().toUpperCase());
+        return new RouteScheduleId(value);
     }
 
     public static RouteScheduleId generate() {
-        String timestamp = String.valueOf(System.currentTimeMillis());
-        String random = String.valueOf(ThreadLocalRandom.current().nextInt(1000, 9999));
-        return new RouteScheduleId(PREFIX + timestamp + "_" + random);
+        return new RouteScheduleId(PREFIX + UUID.randomUUID().toString().replace("-", "").substring(0, 12));
     }
 }
 

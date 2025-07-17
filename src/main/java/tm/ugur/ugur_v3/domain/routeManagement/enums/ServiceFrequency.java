@@ -4,56 +4,60 @@ import lombok.Getter;
 
 @Getter
 public enum ServiceFrequency {
-
-    VERY_HIGH("Very High", "Every 2-5 minutes", 2, 5),
-    HIGH("High", "Every 5-10 minutes", 5, 10),
-    MEDIUM("Medium", "Every 10-20 minutes", 10, 20),
-    LOW("Low", "Every 20-30 minutes", 20, 30),
-    VERY_LOW("Very Low", "Every 30-60 minutes", 30, 60),
-    HOURLY("Hourly", "Every hour", 60, 60),
-    LIMITED("Limited", "Few trips per day", 120, 480);
+    VERY_HIGH("Очень высокая", 3, 5, "Каждые 3-5 минут"),
+    HIGH("Высокая", 5, 10, "Каждые 5-10 минут"),
+    MEDIUM("Средняя", 10, 20, "Каждые 10-20 минут"),
+    LOW("Низкая", 20, 40, "Каждые 20-40 минут"),
+    VERY_LOW("Очень низкая", 40, 90, "Каждые 40-90 минут"),
+    HOURLY("Каждый час", 60, 60, "Каждый час"),
+    PEAK_ONLY("Только час пик", 15, 30, "Только в часы пик"),
+    LIMITED("Ограниченная", 90, 180, "Ограниченное расписание");
 
     private final String displayName;
-    private final String description;
     private final int minHeadwayMinutes;
     private final int maxHeadwayMinutes;
+    private final String description;
 
-    ServiceFrequency(String displayName, String description, int minHeadwayMinutes, int maxHeadwayMinutes) {
+    ServiceFrequency(String displayName, int minHeadway, int maxHeadway, String description) {
         this.displayName = displayName;
+        this.minHeadwayMinutes = minHeadway;
+        this.maxHeadwayMinutes = maxHeadway;
         this.description = description;
-        this.minHeadwayMinutes = minHeadwayMinutes;
-        this.maxHeadwayMinutes = maxHeadwayMinutes;
+    }
+
+    public int getDefaultHeadwayMinutes() {
+        return (minHeadwayMinutes + maxHeadwayMinutes) / 2;
     }
 
     public boolean isHighFrequency() {
-        return this == VERY_HIGH || this == HIGH;
+        return maxHeadwayMinutes <= 10;
     }
 
     public boolean isLowFrequency() {
-        return this == VERY_LOW || this == HOURLY || this == LIMITED;
+        return minHeadwayMinutes >= 40;
     }
 
-    public boolean includesHeadway(int headwayMinutes) {
-        return headwayMinutes >= minHeadwayMinutes && headwayMinutes <= maxHeadwayMinutes;
+    public int getTripsPerHour() {
+        return 60 / getDefaultHeadwayMinutes();
     }
 
-
-    public static ServiceFrequency fromHeadway(int headwayMinutes) {
-        for (ServiceFrequency freq : values()) {
-            if (freq.includesHeadway(headwayMinutes)) {
-                return freq;
-            }
-        }
-        return LIMITED;
+    public int getEstimatedDailyTrips(int operatingHours) {
+        return (operatingHours * 60) / getDefaultHeadwayMinutes();
     }
 
-
-    public double getTripsPerHour() {
-        return 60.0 / ((minHeadwayMinutes + maxHeadwayMinutes) / 2.0);
+    public boolean isSuitableForRouteType(RouteType routeType) {
+        return switch (routeType) {
+            case EXPRESS, FEEDER -> this == HIGH || this == MEDIUM;
+            case REGULAR, TOURIST -> this == MEDIUM || this == LOW;
+            case NIGHT -> this == LOW || this == VERY_LOW || this == HOURLY;
+            case SHUTTLE -> this == VERY_HIGH || this == HIGH;
+            case INTERCITY -> this == LOW || this == VERY_LOW || this == LIMITED;
+            case SCHOOL -> this == PEAK_ONLY || this == LIMITED;
+        };
     }
 
-
-    public int getHourlyCapacity(int vehicleCapacity) {
-        return (int) (getTripsPerHour() * vehicleCapacity);
+    @Override
+    public String toString() {
+        return displayName + " (" + description + ")";
     }
 }

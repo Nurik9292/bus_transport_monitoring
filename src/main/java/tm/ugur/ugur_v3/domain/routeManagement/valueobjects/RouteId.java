@@ -4,7 +4,6 @@ import lombok.Getter;
 import tm.ugur.ugur_v3.domain.shared.exceptions.BusinessRuleViolationException;
 import tm.ugur.ugur_v3.domain.shared.valueobjects.EntityId;
 
-import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Getter
