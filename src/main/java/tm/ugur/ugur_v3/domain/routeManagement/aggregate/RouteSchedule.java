@@ -155,9 +155,14 @@ public class RouteSchedule extends AggregateRoot<RouteScheduleId> {
         validateDynamicAdjustment(dayOfWeek, time, adjustmentMinutes);
 
         String adjustmentKey = dayOfWeek + "_" + time.toString();
-        ScheduleAdjustment adjustment = new ScheduleAdjustment(
-                adjustmentKey, dayOfWeek, time, adjustmentMinutes, reason,
-                adjustedBy, Timestamp.now()
+        ScheduleAdjustment adjustment = ScheduleAdjustment.create(
+                adjustmentKey,
+                dayOfWeek,
+                time,
+                adjustmentMinutes,
+                reason,
+                adjustedBy,
+                Timestamp.now()
         );
 
         activeAdjustments.put(adjustmentKey, adjustment);
@@ -180,8 +185,8 @@ public class RouteSchedule extends AggregateRoot<RouteScheduleId> {
         if (removed != null) {
             markAsModified();
             addDomainEvent(ScheduleAdjustmentRemovedEvent.manual(
-                    routeId, dayOfWeek, time, removed.adjustmentMinutes(),
-                    removed.id(), "Manual removal", removedBy));
+                    routeId, dayOfWeek, time, removed.getAdjustmentMinutes(),
+                    removed.getId(), "Manual removal", removedBy));
         }
     }
 
@@ -356,7 +361,7 @@ public class RouteSchedule extends AggregateRoot<RouteScheduleId> {
         ScheduleAdjustment adjustment = activeAdjustments.get(adjustmentKey);
 
         if (adjustment != null) {
-            return time.plusMinutes(adjustment.adjustmentMinutes());
+            return time.plusMinutes(adjustment.getAdjustmentMinutes());
         }
 
         return time;
@@ -604,32 +609,6 @@ public class RouteSchedule extends AggregateRoot<RouteScheduleId> {
                 missedTrips > totalDailyTrips * 0.05 ||
                 passengerLoadFactor > 1.3;
     }
-
-
-    public record ScheduleAdjustment(
-                String id,
-                DayOfWeek dayOfWeek,
-                LocalTime time,
-                int adjustmentMinutes,
-                String reason,
-                String adjustedBy,
-                Timestamp createdAt) {
-
-        public boolean isDelay() {
-                return adjustmentMinutes > 0;
-            }
-
-            public boolean isEarlyDeparture() {
-                return adjustmentMinutes < 0;
-            }
-
-            @Override
-            public String toString() {
-                String direction = adjustmentMinutes > 0 ? "delay" : "early";
-                return String.format("%s %s: %d min %s (%s)",
-                        dayOfWeek, time, Math.abs(adjustmentMinutes), direction, reason);
-            }
-        }
 
 
     @Override
